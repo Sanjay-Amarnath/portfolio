@@ -1,9 +1,13 @@
 .navbar {
   background: var(--white);
   display: flex;
-  padding: 58px;
+  padding: 58px 0 58px 0;
   justify-content: space-between;
   font-weight: 500;
+  svg {
+    position: absolute;
+    z-index: -1;
+  }
   .pages-div {
     display: flex;
     gap: 40px;

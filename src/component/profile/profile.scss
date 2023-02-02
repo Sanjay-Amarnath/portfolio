@@ -1,0 +1,53 @@
+.Profile-section {
+  padding-top: 58px;
+  display: flex;
+  .user-details-div {
+    width: 50%;
+    span {
+      font-weight: 500;
+      font-size: 20px;
+      color: var(--light-green);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 58px;
+      line-height: 70px;
+      span {
+        font-weight: 600;
+        font-size: 58px;
+        line-height: 70px;
+      }
+    }
+    p {
+      font-weight: 400;
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+  }
+  .user-profile-div {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    svg {
+      position: absolute;
+      left: 0;
+      top: 20px;
+      z-index: -1;
+      width: 24rem;
+      left: 20px;
+    }
+    .rectangle {
+      background: var(--light-green);
+      width: 375px;
+      height: 370px;
+      z-index: -2;
+      img {
+        width: 25rem;
+        height: 25rem;
+        position: absolute;
+        bottom: 0;
+      }
+    }
+  }
+}

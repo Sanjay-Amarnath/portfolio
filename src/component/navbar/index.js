@@ -1,8 +1,11 @@
 import { Button } from "@mui/material";
 import "./navbar.scss";
+import { ReactComponent as Bubble } from "../../assets/svg/bubbles.svg";
+
 const Navbar = () => {
   return (
-    <div className="navbar">
+    <div className="navbar container">
+      <Bubble />
       <div className="logo">Sanjay Amarnath</div>
       <div className="pages-div">
         <div className="topics">About</div>
