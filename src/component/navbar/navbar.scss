@@ -4,9 +4,11 @@
   padding: 58px 0 58px 0;
   justify-content: space-between;
   font-weight: 500;
+  position: relative;
   svg {
     position: absolute;
     z-index: -1;
+    top: 0;
   }
   .pages-div {
     display: flex;

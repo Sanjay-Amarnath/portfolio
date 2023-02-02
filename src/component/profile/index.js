@@ -1,6 +1,7 @@
 import "./profile.scss";
 import { ReactComponent as Rectangle } from "../../assets/svg/Rectangle.svg";
 import SanjayPic from "../../assets/image/sanjay.png";
+import { Button } from "@mui/material";
 const Profile = () => {
   return (
     <div className="Profile-section container">
@@ -14,6 +15,11 @@ const Profile = () => {
           Utilized React.js, JavaScript, and HTML/CSS to develop reusable UI
           components
         </p>
+        <div className="contact-div">
+          <Button className="contact-button" variant="contained">
+          Contact Me
+          </Button>
+        </div>
       </div>
       <div className="user-profile-div">
         <div className="rectangle">

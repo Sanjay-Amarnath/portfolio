@@ -1,5 +1,5 @@
 .Profile-section {
-  padding-top: 58px;
+  padding-top: 100px;
   display: flex;
   .user-details-div {
     width: 50%;
@@ -23,6 +23,11 @@
       font-size: 16px;
       margin-bottom: 24px;
     }
+    .contact-div {
+      .contact-button {
+        background: var(--light-green);
+      }
+    }
   }
   .user-profile-div {
     width: 50%;
@@ -32,10 +37,10 @@
     svg {
       position: absolute;
       left: 0;
-      top: 20px;
+      top: 17px;
       z-index: -1;
       width: 24rem;
-      left: 20px;
+      left: 35px;
     }
     .rectangle {
       background: var(--light-green);
