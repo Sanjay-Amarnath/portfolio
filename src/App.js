@@ -1,8 +1,8 @@
-import logo from "./logo.svg";
 import "./App.css";
+import Home from "./pages/home";
 
 function App() {
-  return <h1>Sanjay website</h1>;
+  return <Home/>;
 }
 
 export default App;
