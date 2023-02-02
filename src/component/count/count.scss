@@ -1,0 +1,15 @@
+.count-div {
+  display: flex;
+  justify-content: space-evenly;
+  .center-border {
+    height: 80px;
+    width: 1px;
+    background: var(--light-green);
+  }
+  p {
+    font-weight: 600;
+  }
+  h1 {
+    font-weight: 600;
+  }
+}
