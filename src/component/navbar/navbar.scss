@@ -1,3 +1,4 @@
+@import "../../scss/_mixins.scss";
 .navbar {
   background: var(--white);
   display: flex;
@@ -5,6 +6,17 @@
   justify-content: space-between;
   font-weight: 500;
   position: relative;
+  @include tablet {
+    justify-content: center;
+    padding: 20px 0 20px 0;
+    gap: 17px;
+    svg {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: none;
+    }
+  }
   svg {
     position: absolute;
     z-index: -1;

@@ -1,3 +1,4 @@
+@import "../../scss/_mixins.scss";
 .Profile-section {
   padding-top: 150px;
   display: flex;
@@ -53,6 +54,32 @@
         height: 25rem;
         position: absolute;
         bottom: 0;
+      }
+    }
+  }
+
+  @include tablet {
+    padding-top: 50px;
+    flex-direction: column;
+    gap: 90px;
+    padding-bottom: 80px;
+    .user-details-div {
+      width: auto;
+    }
+    .user-profile-div {
+      width: auto;
+      .rectangle {
+        height: 270px;
+        width: 250px;
+        svg {
+          top: -43px;
+          width: 16rem;
+          left: 26px;
+        }
+        img {
+          width: 19rem;
+          height: 19rem;
+        }
       }
     }
   }
