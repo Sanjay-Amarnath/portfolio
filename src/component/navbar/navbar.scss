@@ -6,7 +6,7 @@
   justify-content: space-between;
   font-weight: 500;
   position: relative;
-  @include tablet {
+  @include mobile {
     justify-content: center;
     padding: 20px 0 20px 0;
     gap: 17px;
