@@ -3,13 +3,13 @@ const Count = () => {
   return (
     <div className="count-div container">
       <div className="working-div">
-        <p>5</p>
-        <h1> Working Project</h1>
+        <h1>5+</h1>
+        <p> Working Project</p>
       </div>
       <div className="center-border"></div>
       <div className="work-hours">
-        <p>8766</p>
-        <h1>Work Hours</h1>
+        <h1>8766+</h1>
+        <p>Work Hours</p>
       </div>
     </div>
   );
