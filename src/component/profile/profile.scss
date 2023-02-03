@@ -58,32 +58,6 @@
     }
   }
 
-  @include mobile {
-    padding-top: 50px;
-    flex-direction: column;
-    gap: 90px;
-    padding-bottom: 80px;
-    .user-details-div {
-      width: auto;
-    }
-    .user-profile-div {
-      width: auto;
-      .rectangle {
-        height: 270px;
-        width: 250px;
-        svg {
-          top: -43px;
-          width: 16rem;
-          left: 26px;
-        }
-        img {
-          width: 19rem;
-          height: 19rem;
-        }
-      }
-    }
-  }
-
   @include tablet {
     padding-top: 50px;
     flex-direction: column;
@@ -101,6 +75,32 @@
           top: -43px;
           width: 16rem;
           left: 198px;
+        }
+        img {
+          width: 19rem;
+          height: 19rem;
+        }
+      }
+    }
+  }
+
+  @include mobile {
+    padding-top: 50px;
+    flex-direction: column;
+    gap: 90px;
+    padding-bottom: 80px;
+    .user-details-div {
+      width: auto;
+    }
+    .user-profile-div {
+      width: auto;
+      .rectangle {
+        height: 270px;
+        width: 250px;
+        svg {
+          top: -43px;
+          width: 16rem;
+          left: 26px;
         }
         img {
           width: 19rem;
