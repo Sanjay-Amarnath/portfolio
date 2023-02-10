@@ -1,3 +1,7 @@
-footer{
-    background: var(--white);
+.footer-div {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid #bec0bf;
+  margin-top: 30px;
+  padding: 10px 10px;
 }

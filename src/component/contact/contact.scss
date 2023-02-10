@@ -1,0 +1,84 @@
+@import "../../scss/_mixins.scss";
+.contact {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  .title {
+    text-align: center;
+    h1 {
+      font-size: 40px;
+      font-weight: 600;
+      span {
+        font-size: 40px;
+      }
+    }
+    p {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px;
+    }
+    span {
+      color: var(--light-green);
+      font-weight: 500;
+      font-size: 20px;
+    }
+  }
+  .input-form {
+    display: flex;
+    padding: 36px 0 26px 0;
+
+    @include mobile {
+      flex-direction: column;
+      align-items: center;
+    }
+    .details-data {
+      .data {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        padding-bottom: 60px;
+        .icon {
+          svg {
+            width: 40px;
+            height: 40px;
+          }
+        }
+        .user-data {
+          p {
+            margin: 0;
+            font-weight: 400;
+            font-size: 16px;
+          }
+          h3 {
+            margin: 0;
+            font-weight: 500;
+            font-size: 16px;
+          }
+        }
+      }
+    }
+    .input-div {
+      @include mobile {
+        gap: 10px;
+      }
+      input {
+        width: 100%;
+        outline: none;
+        padding: 11px 15px;
+      }
+      textarea {
+        outline: none;
+      }
+    }
+  }
+  .submit-div {
+    display: flex;
+    justify-content: end;
+    @include mobile {
+      justify-content: center;
+    }
+    .submit-btn {
+      background: var(--light-green);
+    }
+  }
+}

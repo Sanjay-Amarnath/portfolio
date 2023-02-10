@@ -1,5 +1,9 @@
 import "./profile.scss";
 import { ReactComponent as Rectangle } from "../../assets/svg/Rectangle.svg";
+import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
+import { ReactComponent as Facebook } from "../../assets/svg/facebook.svg";
+import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
+
 import SanjayPic from "../../assets/image/sanjay.png";
 import { Button } from "@mui/material";
 const Profile = () => {
@@ -17,7 +21,7 @@ const Profile = () => {
         </p>
         <div className="contact-div">
           <Button className="contact-button" variant="contained">
-          Contact Me
+            Contact Me
           </Button>
         </div>
       </div>
@@ -25,6 +29,14 @@ const Profile = () => {
         <div className="rectangle">
           <Rectangle />
           <img src={SanjayPic} alt="Sanjay-Profile" />
+        </div>
+      </div>
+      <div className="social-media-div">
+        <div className="follow-me">Follow Me On</div>
+        <div className="social-media-icon">
+          <Instagram />
+          <Facebook />
+          <LinkedIn />
         </div>
       </div>
     </div>

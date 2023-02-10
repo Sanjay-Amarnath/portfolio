@@ -49,3 +49,7 @@
   left: 0;
   background: var(--light-green);
 }
+
+.bg-green {
+  background: var(--light-green);
+}

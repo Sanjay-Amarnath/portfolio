@@ -58,6 +58,23 @@
     }
   }
 
+  .social-media-div {
+    display: flex;
+    flex-direction: column;
+    .follow-me {
+      transform: rotate(90deg);
+    }
+    .social-media-icon {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    svg {
+      height: 30px;
+      width: 30px;
+    }
+  }
+
   @include tablet {
     padding-top: 50px;
     flex-direction: column;
@@ -107,6 +124,9 @@
           height: 19rem;
         }
       }
+    }
+    .social-media-div {
+      flex-direction: row;
     }
   }
 }
