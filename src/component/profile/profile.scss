@@ -61,8 +61,15 @@
   .social-media-div {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    width: 0;
+
     .follow-me {
       transform: rotate(90deg);
+      p {
+        white-space: nowrap;
+      }
     }
     .social-media-icon {
       display: flex;
@@ -126,7 +133,13 @@
       }
     }
     .social-media-div {
-      flex-direction: row;
+      width: auto;
+      .social-media-icon {
+        flex-direction: row;
+      }
+    }
+    .follow-me {
+      transform: none !important;
     }
   }
 }

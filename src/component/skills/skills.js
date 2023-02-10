@@ -17,7 +17,12 @@ const Skills = () => {
           CSS, and APIs.
         </p>
         <Button variant="contained" className="hire-btn">
-          Hire Me
+          <a
+            class="MuiTypography-root MuiLink-root MuiLink-underlineNone MuiTypography-colorSecondary"
+            href="mailto:sanjaymrnth@gmail.com?subject=Hiring for React Developer&amp;body="
+          >
+            HIRE ME
+          </a>
         </Button>
       </div>
       <div className="skill-div-two">

@@ -32,7 +32,9 @@ const Profile = () => {
         </div>
       </div>
       <div className="social-media-div">
-        <div className="follow-me">Follow Me On</div>
+        <div className="follow-me">
+          <p>Follow Me On</p>
+        </div>
         <div className="social-media-icon">
           <Instagram />
           <Facebook />
