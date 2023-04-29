@@ -6,15 +6,7 @@ import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
 
 import SanjayPic from "../../assets/image/sanjay.png";
 import { Button } from "@mui/material";
-import { useEffect } from "react";
 const Profile = () => {
-  
-  function handleScroll() {
-    const link = document.createElement('a');
-    link.href = "#contact";
-    link.click();
-  }
-  
   return (
     <div className="Profile-section container">
       <div className="user-details-div">
@@ -28,7 +20,7 @@ const Profile = () => {
           components
         </p>
         <div className="contact-div">
-          <Button className="contact-button" variant="contained" onClick={handleScroll}>
+          <Button className="contact-button" variant="contained">
             Contact Me
           </Button>
         </div>
