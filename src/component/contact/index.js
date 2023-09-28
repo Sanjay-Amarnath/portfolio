@@ -4,13 +4,20 @@ import { ReactComponent as Location } from "../../assets/svg/location.svg";
 import { ReactComponent as Mail } from "../../assets/svg/mail.svg";
 import { useState } from "react";
 import { Button } from "@mui/material";
+import { ValidationError, useForm } from "@formspree/react";
 const Contact = () => {
   const [value, setValue] = useState({});
+
+  const [state, handleSubmit] = useForm("moqzrqja");
 
   const handleChange = (e) => {
     const { value, name } = e.target;
     setValue((prev) => ({ ...prev, [name]: value }));
   };
+
+  if (state.succeeded) {
+    return <p>Message Sented !</p>;
+  }
 
   console.log(value);
   return (
@@ -55,50 +62,53 @@ const Contact = () => {
             </div>
           </div>
         </div>
-        <div className="input-div row col-md-9">
-          <div className={"col-md-6"}>
-            <input
-              placeholder="Full name"
-              className="submit-input"
-              name="fullname"
-              onChange={handleChange}
-            />
-          </div>
-          <div className={"col-md-6"}>
-            <input
-              name="email"
-              placeholder="Your Eamil"
-              className="submit-input"
-              onChange={handleChange}
-            />
-          </div>
-          <div className={"col-md-6"}>
-            <input
-              email={"phone"}
-              placeholder="Phone Number"
-              className="submit-input"
-              onChange={handleChange}
-            />
-          </div>
-          <div className={"col-md-12"}>
-            <textarea
-              name={"message"}
-              className="col-md-12"
-              placeholder="Message"
-              rows="5"
-              cols="50"
-              onChange={handleChange}
-            ></textarea>
-          </div>
+        <div className="input-div row col-md-8 p-0">
+          <form onSubmit={handleSubmit}>
+            <div className={"col-md-6"}>
+              <label htmlFor="email">Email</label>
+              <input
+                placeholder="Your Eamil"
+                className="submit-input"
+                // onChange={handleChange}
+                id="email"
+                type="email"
+                name="email"
+              />
+              <ValidationError
+                prefix="Email"
+                field="email"
+                errors={state.errors}
+              />
+            </div>
+            <div className={"col-md-12"}>
+              <label htmlFor="message">Message</label>
+              <textarea
+                className="col-md-12"
+                placeholder="Message"
+                rows="5"
+                cols="50"
+                // onChange={handleChange}
+                id="message"
+                name={"message"}
+              ></textarea>
+              <ValidationError
+                prefix="Message"
+                field="message"
+                errors={state.errors}
+              />
+            </div>
+          </form>
         </div>
         <div></div>
       </div>
-      <div className="submit-div">
-        <Button variant="contained" className="submit-btn">
-          {" "}
-          submit message
-        </Button>
-      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="submit-div">
+          <Button variant="contained" type="submit" className="submit-btn">
+            {" "}
+            submit message
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
