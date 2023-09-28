@@ -1,21 +1,22 @@
 import { Button } from "@mui/material";
 import "./navbar.scss";
 import { ReactComponent as Bubble } from "../../assets/svg/bubbles.svg";
+import SanjayPic from "../../assets/image/sanjay-logo.jpg";
 
-const URL = "https://drive.google.com/file/d/1ejCPKmXEH8zkJqxkk-RvKITeQNk-GZPY/view?usp=drive_link"
+const URL =
+  "https://drive.google.com/file/d/1ejCPKmXEH8zkJqxkk-RvKITeQNk-GZPY/view?usp=drive_link";
 
-const resumeBtn =()=>{
-  window.open(URL, '_blank');
-
-}
+const resumeBtn = () => {
+  window.open(URL, "_blank");
+};
 
 const Navbar = () => {
-
-  
   return (
     <div className="navbar container">
       <Bubble />
-      <div className="logo">Sanjay Amarnath</div>
+      <div className="logo">
+        Sanjay Amarnath
+      </div>
       <div className="pages-div">
         <div className="topics">About</div>
         <div className="topics">Skills</div>

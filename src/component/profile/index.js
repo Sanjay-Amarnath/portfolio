@@ -8,13 +8,12 @@ import SanjayPic from "../../assets/image/sanjay.png";
 import { Button } from "@mui/material";
 import { useEffect } from "react";
 const Profile = () => {
-  
   function handleScroll() {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = "#contact";
     link.click();
   }
-  
+
   return (
     <div className="Profile-section container">
       <div className="user-details-div">
@@ -29,17 +28,20 @@ const Profile = () => {
         </p>
         <div className="contact-div">
           <a href="mailto:sanjaymrnth@gmail.com">
-          <Button className="contact-button"  variant="contained" onClick={handleScroll}>
-            Contact Me
-          </Button>
+            <Button
+              className="contact-button"
+              variant="contained"
+              onClick={handleScroll}
+            >
+              Contact Me
+            </Button>
           </a>
-         
         </div>
       </div>
       <div className="user-profile-div">
         <div className="rectangle">
           <Rectangle />
-          <img src={SanjayPic} alt="Sanjay-Profile" />
+          {/* <img src={SanjayPic} alt="Sanjay-Profile" /> */}
         </div>
       </div>
       <div className="social-media-div">
@@ -47,9 +49,13 @@ const Profile = () => {
           <p>Follow Me On</p>
         </div>
         <div className="social-media-icon">
-          <Instagram />
-          <Facebook />
-          <LinkedIn />
+          <a href="https://www.linkedin.com/in/sanjay-amarnath-44b74420a">
+            <Instagram />
+          </a>
+          <a className="twitter" href="https://twitter.com/sanjayamrnath">X</a>
+          <a href="https://www.linkedin.com/in/sanjay-amarnath-44b74420a">
+            <LinkedIn />
+          </a>
         </div>
       </div>
     </div>

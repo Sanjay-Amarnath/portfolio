@@ -6,6 +6,9 @@
   justify-content: space-between;
   font-weight: 500;
   position: relative;
+  .logo {
+    cursor: pointer;
+  }
   @include mobile {
     justify-content: center;
     padding: 20px 0 20px 0;
@@ -25,8 +28,9 @@
   .pages-div {
     display: flex;
     gap: 40px;
-    // .topics {
-    // }
+    .topics {
+      cursor: pointer;
+    }
   }
   .cv-div {
     .cv-button {
