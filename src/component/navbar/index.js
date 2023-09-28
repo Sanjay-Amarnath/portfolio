@@ -10,6 +10,8 @@ const resumeBtn =()=>{
 }
 
 const Navbar = () => {
+
+  
   return (
     <div className="navbar container">
       <Bubble />
