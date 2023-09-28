@@ -41,7 +41,7 @@ const Profile = () => {
       <div className="user-profile-div">
         <div className="rectangle">
           <Rectangle />
-          {/* <img src={SanjayPic} alt="Sanjay-Profile" /> */}
+          <img src={SanjayPic} alt="Sanjay-Profile" />
         </div>
       </div>
       <div className="social-media-div">
