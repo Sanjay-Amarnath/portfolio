@@ -1,8 +1,6 @@
 import { Button } from "@mui/material";
 import "./navbar.scss";
 import { ReactComponent as Bubble } from "../../assets/svg/bubbles.svg";
-import SanjayPic from "../../assets/image/sanjay-logo.jpg";
-
 const URL =
   "https://drive.google.com/file/d/1ejCPKmXEH8zkJqxkk-RvKITeQNk-GZPY/view?usp=drive_link";
 
