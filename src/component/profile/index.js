@@ -28,9 +28,12 @@ const Profile = () => {
           components
         </p>
         <div className="contact-div">
-          <Button className="contact-button" variant="contained" onClick={handleScroll}>
+          <a href="mailto:sanjaymrnth@gmail.com">
+          <Button className="contact-button"  variant="contained" onClick={handleScroll}>
             Contact Me
           </Button>
+          </a>
+         
         </div>
       </div>
       <div className="user-profile-div">
