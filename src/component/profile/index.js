@@ -1,13 +1,12 @@
 import "./profile.scss";
 import { ReactComponent as Rectangle } from "../../assets/svg/Rectangle.svg";
 import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
-import { ReactComponent as Facebook } from "../../assets/svg/facebook.svg";
 import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
 
 import SanjayPic from "../../assets/image/sanjay.png";
 import { Button } from "@mui/material";
 import { useEffect } from "react";
-const Profile = () => {
+const Profile = ({ref}) => {
   function handleScroll() {
     const link = document.createElement("a");
     link.href = "#contact";
@@ -15,8 +14,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="Profile-section container">
-      <div className="user-details-div">
+    <div className="Profile-section container" ref={ref}>
+      <div className="user-details-div " >
         <span>Hi <span className="emoji">👋</span></span>,
         <h1>
           I am <span>Creative React </span>Developer,

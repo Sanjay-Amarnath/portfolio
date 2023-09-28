@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Contact from "../../component/contact";
 import Count from "../../component/count/count";
 import Footer from "../../component/footer";
@@ -6,10 +7,11 @@ import Profile from "../../component/profile";
 import Skills from "../../component/skills/skills";
 
 const Home = () => {
+  const profileRef = useRef(null)
   return (
     <>
-      <Navbar />
-      <Profile />
+      <Navbar profileRef={profileRef}/>
+      <Profile ref={profileRef}/>
       <Count />
       <Skills />
       <Contact />
