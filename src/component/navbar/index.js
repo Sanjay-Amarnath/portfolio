@@ -13,7 +13,7 @@ const Navbar = () => {
     <div className="navbar container">
       <Bubble />
       <div className="logo">
-        Sanjay Amarnath
+        S.Sanjay Amarnath <span className="emoji">✨</span>
       </div>
       <div className="pages-div">
         <div className="topics">About</div>
@@ -23,7 +23,7 @@ const Navbar = () => {
       </div>
       <div className="cv-div">
         <Button className="cv-button" variant="outlined" onClick={resumeBtn}>
-          Download CV
+          Download CV  
         </Button>
       </div>
     </div>

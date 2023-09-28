@@ -17,7 +17,7 @@ const Profile = () => {
   return (
     <div className="Profile-section container">
       <div className="user-details-div">
-        <span>Hi</span>
+        <span>Hi <span className="emoji">👋</span></span>,
         <h1>
           I am <span>Creative React </span>Developer,
         </h1>
