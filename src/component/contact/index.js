@@ -11,15 +11,12 @@ const Contact = () => {
   const [state, handleSubmit] = useForm("moqzrqja");
 
   const handleChange = (e) => {
+    // console.log(state)
     const { value, name } = e.target;
     setValue((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (state.succeeded) {
-    return <p>Message Sented !</p>;
-  }
 
-  console.log(value);
   return (
     <div className="contact container">
       <div className="title">
@@ -63,52 +60,58 @@ const Contact = () => {
           </div>
         </div>
         <div className="input-div row col-md-8 p-0">
-          <form onSubmit={handleSubmit}>
-            <div className={"col-md-6"}>
-              <label htmlFor="email">Email</label>
-              <input
-                placeholder="Your Eamil"
-                className="submit-input"
-                // onChange={handleChange}
-                id="email"
-                type="email"
-                name="email"
-              />
-              <ValidationError
-                prefix="Email"
-                field="email"
-                errors={state.errors}
-              />
-            </div>
-            <div className={"col-md-12"}>
-              <label htmlFor="message">Message</label>
-              <textarea
-                className="col-md-12"
-                placeholder="Message"
-                rows="5"
-                cols="50"
-                // onChange={handleChange}
-                id="message"
-                name={"message"}
-              ></textarea>
-              <ValidationError
-                prefix="Message"
-                field="message"
-                errors={state.errors}
-              />
-            </div>
-          </form>
+          {state.succeeded ? (
+            <p className="text-center">Message Sented !</p>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div className={"col-md-6"}>
+                <label htmlFor="email">Email</label>
+                <input
+                  placeholder="Your Eamil"
+                  className="submit-input"
+                  onChange={handleChange}
+                  id="email"
+                  type="email"
+                  name="email"
+                />
+                <ValidationError
+                  prefix="email"
+                  field="email"
+                  errors={state.errors}
+                />
+              </div>
+              <div className={"col-md-12"}>
+                <label htmlFor="message">Message</label>
+                <textarea
+                  className="col-md-12"
+                  placeholder="Message"
+                  rows="5"
+                  cols="50"
+                  onChange={handleChange}
+                  id="message"
+                  name={"message"}
+                ></textarea>
+                <ValidationError
+                  prefix="message"
+                  field="message"
+                  errors={state.errors}
+                />
+              </div>
+              <div className="submit-div col-md-12">
+                <Button
+                  variant="contained"
+                  type="submit"
+                  className="submit-btn"
+                >
+                  {" "}
+                  submit message
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
         <div></div>
       </div>
-      <form onSubmit={handleSubmit}>
-        <div className="submit-div">
-          <Button variant="contained" type="submit" className="submit-btn">
-            {" "}
-            submit message
-          </Button>
-        </div>
-      </form>
     </div>
   );
 };
