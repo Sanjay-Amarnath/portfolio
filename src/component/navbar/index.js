@@ -9,9 +9,9 @@ const resumeBtn = () => {
 };
 
 const Navbar = ({ profileRef }) => {
-  const slider = () => {
-    profileRef.current.scrollIntoView({ behavior: "smooth" });
-  };
+  // const slider = () => {
+  //   profileRef.current.scrollIntoView({ behavior: "smooth" });
+  // };
   return (
     <div className="navbar container">
       <Bubble />

@@ -6,16 +6,15 @@ import { useState } from "react";
 import { Button } from "@mui/material";
 import { ValidationError, useForm } from "@formspree/react";
 const Contact = () => {
-  const [value, setValue] = useState({});
+  // const [value, setValue] = useState({});
 
   const [state, handleSubmit] = useForm("moqzrqja");
 
   const handleChange = (e) => {
     // console.log(state)
     const { value, name } = e.target;
-    setValue((prev) => ({ ...prev, [name]: value }));
+    // setValue((prev) => ({ ...prev, [name]: value }));
   };
-
 
   return (
     <div className="contact container">
