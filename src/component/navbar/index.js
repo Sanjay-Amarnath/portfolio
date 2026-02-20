@@ -2,7 +2,7 @@ import { Button } from "@mui/material";
 import "./navbar.scss";
 import { ReactComponent as Bubble } from "../../assets/svg/bubbles.svg";
 const URL =
-  "https://drive.google.com/file/d/1ejCPKmXEH8zkJqxkk-RvKITeQNk-GZPY/view?usp=drive_link";
+  "https://www.canva.com/design/DAGD22P57yk/RcMPU-QlOiqO5I5gN-X7XQ/view?utm_content=DAGD22P57yk&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=hfcc300c1ed";
 
 const resumeBtn = () => {
   window.open(URL, "_blank");
