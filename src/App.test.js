@@ -10,9 +10,9 @@ jest.mock("./firebase", () => ({
 test("renders the portfolio headline and sections", () => {
   render(<App />);
 
-  expect(screen.getByRole("heading", { name: /I build digital experiences\./i })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Expertise" })).toHaveAttribute("href", "#expertise");
-  expect(screen.getByRole("heading", { name: /good work happens/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Curiosity is my compass/i })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Field notes/i })).toHaveAttribute("href", "#expertise");
+  expect(screen.getByText(/Move your pointer through the current/i)).toBeInTheDocument();
 });
 
 test("allows switching between light and dark themes", () => {

@@ -10,6 +10,7 @@ import { getDownloadURL, ref } from "firebase/storage";
 
 const Navbar = ({ theme, onToggleTheme }) => {
   const [resumeUrl, setResumeUrl] = useState(localResume);
+  const [activeSection, setActiveSection] = useState("about");
 
   useEffect(() => {
     if (!isFirebaseConfigured) return undefined;
@@ -37,17 +38,38 @@ const Navbar = ({ theme, onToggleTheme }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return undefined;
+    const sections = ["about", "experience", "expertise", "contact"]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSections = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+        if (visibleSections[0]) setActiveSection(visibleSections[0].target.id);
+      },
+      { rootMargin: "-25% 0px -55% 0px", threshold: [0, 0.2, 0.5, 1] }
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <header className="navbar-wrap" id="top">
       <nav className="navbar container" aria-label="Main navigation">
         <a className="logo" href="#top" aria-label="Sanjay Amarnath, home">
-          <span className="logo-monogram">S<span>.</span></span>
-          <span className="logo-name">Sanjay Amarnath</span>
+          <span className="logo-monogram">
+            <span className="logo-mark-initial">S</span>
+            <span className="logo-mark-period">.</span>
+          </span>
+          <span className="logo-name">SANJAY AMARNATH<small>DEVELOPER / EXPLORER</small></span>
         </a>
         <div className="pages-div">
-          <a className="topics" href="#about">About</a>
-          <a className="topics" href="#expertise">Expertise</a>
-          <a className="topics" href="#contact">Contact</a>
+          <a className="topics" href="#about" aria-current={activeSection === "about" ? "location" : undefined}><span>01</span> Crew</a>
+          <a className="topics" href="#expertise" aria-current={activeSection === "expertise" ? "location" : undefined}><span>02</span> Field notes</a>
+          <a className="topics" href="#contact" aria-current={activeSection === "contact" ? "location" : undefined}><span>03</span> Signal</a>
         </div>
         <div className="nav-actions">
           <button

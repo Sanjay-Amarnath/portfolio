@@ -5,7 +5,7 @@ import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
 import SanjayPic from "../../assets/image/sanjay.png";
 import { getFirebaseServices, isFirebaseConfigured } from "../../firebase";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
-import SplitFlapText from "../animations/SplitFlapText";
+import ParticleTextCanvas from "../animations/ParticleTextCanvas";
 
 const Profile = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
@@ -33,34 +33,41 @@ const Profile = () => {
   }, []);
 
   return (
-    <section className="Profile-section container" id="about" aria-labelledby="hero-title">
-      <div className="user-details-div">
+    <section className="Profile-section" id="about" aria-labelledby="hero-title">
+      <div className="hero-coordinate-grid" aria-hidden="true" />
+      <div className="hero-map-label" aria-hidden="true">
+        <span>CHART 01</span>
+        <span>PERNAMBUT — INDIA</span>
+      </div>
+      <div className="hero-copy">
         <p className="hero-kicker">
           <span className="status-dot" aria-hidden="true" />
-          REACT DEVELOPER <span className="kicker-divider">/</span> UI ENGINEERING
+          FRONTEND DEVELOPER <span className="kicker-divider">/</span> OPEN TO THE NEXT VOYAGE
         </p>
+        <p className="hero-overline">A DEVELOPER’S FIELD NOTES — 2026</p>
         <h1 id="hero-title">
-          I build digital
+          Curiosity is
           <br />
-          <SplitFlapText text="experiences." />
+          my <em>compass.</em>
         </h1>
         <p className="hero-description">
-          I’m Sanjay Amarnath — a React developer with 5+ years of experience
-          creating thoughtful, responsive interfaces. I turn complex ideas
-          into clear, polished experiences, from reusable components to
-          connected APIs.
+          I’m Sanjay Amarnath, a React developer with 5+ years of experience
+          turning ambitious ideas into intuitive, responsive interfaces.
+          Thoughtful by design. Solid under the surface.
         </p>
         <div className="hero-actions">
           <a className="primary-action" href="#contact">
-            Let’s work together
+            Start a conversation
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M4 10h11m-4-4 4 4-4 4" />
             </svg>
           </a>
-          <a className="text-action" href="#expertise">Explore my expertise</a>
+          <a className="text-action" href="#expertise">
+            Explore the log <span aria-hidden="true">↓</span>
+          </a>
         </div>
         <div className="hero-socials" aria-label="Social profiles">
-          <span>FIND ME</span>
+          <span>RADIO LINKS</span>
           <a href={socialLinks.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
             <LinkedIn />
           </a>
@@ -72,24 +79,44 @@ const Profile = () => {
           </a>
         </div>
       </div>
-      <div className="user-profile-div" aria-label="Sanjay Amarnath portrait">
-        <div className="portrait-scene">
-          <div className="portrait-orbit portrait-orbit-one" />
-          <div className="portrait-orbit portrait-orbit-two" />
-          <div className="portrait-backdrop">
-            <span className="portrait-index">SA <i>/ REACT</i></span>
-            <span className="portrait-stamp">DESIGN<br />WITH<br /><b>INTENT.</b></span>
-          </div>
-          <div className="portrait-card">
-            <img src={SanjayPic} alt="Portrait of Sanjay Amarnath" />
-          </div>
-          <div className="experience-float">
-            <strong>5<span>+</span></strong>
-            <span>years<br />of experience</span>
-          </div>
-          <span className="hero-coordinate">LAT 12.9° N&nbsp; / &nbsp;MADE FOR THE WEB</span>
+
+      <div className="hero-illustration">
+        <div className="chart-ring chart-ring-outer" aria-hidden="true" />
+        <div className="chart-ring chart-ring-inner" aria-hidden="true" />
+        <div className="chart-cross chart-cross-one" aria-hidden="true" />
+        <div className="chart-cross chart-cross-two" aria-hidden="true" />
+        <div className="compass-rose" aria-hidden="true">
+          <span className="rose-north">N</span>
+          <span className="rose-east">E</span>
+          <span className="rose-south">S</span>
+          <span className="rose-west">W</span>
+          <span className="rose-needle" />
         </div>
+        <ParticleTextCanvas text="MAKE WAVES" />
+        <div className="portrait-card">
+          <span className="portrait-card-tag">THE HUMAN BEHIND THE PIXELS</span>
+          <img src={SanjayPic} alt="Portrait of Sanjay Amarnath" />
+          <div className="portrait-card-caption">
+            <span>SA / 01</span>
+            <span>BUILD WITH INTENT</span>
+          </div>
+        </div>
+        <div className="experience-stamp">
+          <strong>5<sup>+</sup></strong>
+          <span>YEARS<br />ON DECK</span>
+        </div>
+        <div className="hero-squiggle" aria-hidden="true">
+          <svg viewBox="0 0 180 54">
+            <path d="M2 36C25 36 25 12 49 12s24 30 49 30 24-29 49-29 23 16 31 16" />
+            <path d="M2 48C25 48 25 24 49 24s24 30 49 30 24-29 49-29 23 16 31 16" />
+          </svg>
+        </div>
+        <p className="illustration-caption">A LITTLE CURIOSITY GOES A LONG WAY.</p>
       </div>
+      <a className="scroll-indicator" href="#experience">
+        <span>SCROLL TO EXPLORE</span>
+        <i aria-hidden="true" />
+      </a>
     </section>
   );
 };

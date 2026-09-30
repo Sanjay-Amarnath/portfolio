@@ -6,6 +6,7 @@ import Navbar from "../../component/navbar";
 import Profile from "../../component/profile";
 import Skills from "../../component/skills/skills";
 import LoadingScreen from "../../component/animations/LoadingScreen";
+import CompassCursor from "../../component/animations/CompassCursor";
 
 const THEME_STORAGE_KEY = "portfolio-theme";
 
@@ -73,6 +74,7 @@ const Home = () => {
 
   return (
     <div className="portfolio-shell" data-theme={theme}>
+      <CompassCursor />
       {isLoading && <LoadingScreen />}
       <Navbar
         theme={theme}
