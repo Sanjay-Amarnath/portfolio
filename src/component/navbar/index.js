@@ -1,14 +1,44 @@
+import { useEffect, useState } from "react";
 import { Button } from "@mui/material";
 import "./navbar.scss";
 import { ReactComponent as Bubble } from "../../assets/svg/bubbles.svg";
-const URL =
-  "https://www.canva.com/design/DAGD22P57yk/RcMPU-QlOiqO5I5gN-X7XQ/view?utm_content=DAGD22P57yk&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=hfcc300c1ed";
-
-const resumeBtn = () => {
-  window.open(URL, "_blank");
-};
+import localResume from "../../assets/file/Resume.pdf";
+import {
+  getFirebaseServices,
+  isFirebaseConfigured,
+  RESUME_STORAGE_PATH,
+} from "../../firebase";
+import { getDownloadURL, ref } from "firebase/storage";
 
 const Navbar = ({ profileRef }) => {
+  const [resumeUrl, setResumeUrl] = useState(localResume);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+
+    let isMounted = true;
+    let storage;
+    try {
+      ({ storage } = getFirebaseServices());
+    } catch (error) {
+      console.error("Could not initialize Firebase for the resume:", error);
+      return undefined;
+    }
+    getDownloadURL(ref(storage, RESUME_STORAGE_PATH))
+      .then((url) => {
+        if (isMounted) setResumeUrl(url);
+      })
+      .catch((error) => {
+        if (error.code !== "storage/object-not-found") {
+          console.error("Could not load the Firebase resume:", error);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // const slider = () => {
   //   profileRef.current.scrollIntoView({ behavior: "smooth" });
   // };
@@ -27,7 +57,14 @@ const Navbar = ({ profileRef }) => {
         <div className="topics">Testimonial</div> */}
       </div>
       <div className="cv-div">
-        <Button className="cv-button" variant="outlined" onClick={resumeBtn}>
+        <Button
+          className="cv-button"
+          variant="outlined"
+          component="a"
+          href={resumeUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
           Download CV
         </Button>
       </div>

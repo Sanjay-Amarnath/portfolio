@@ -1,10 +1,37 @@
+import { useEffect, useState } from "react";
 import "./profile.scss";
 import { ReactComponent as Rectangle } from "../../assets/svg/Rectangle.svg";
 import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
 import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
 import SanjayPic from "../../assets/image/sanjay.png";
 import { Button } from "@mui/material";
+import { getFirebaseServices, isFirebaseConfigured } from "../../firebase";
+import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
 const Profile = ({ ref }) => {
+  const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+
+    let isMounted = true;
+    try {
+      const { storage } = getFirebaseServices();
+      loadSocialLinks(storage)
+        .then((links) => {
+          if (isMounted) setSocialLinks(links);
+        })
+        .catch((error) => {
+          console.error("Could not load portfolio social links:", error);
+        });
+    } catch (error) {
+      console.error("Could not initialize Firebase for social links:", error);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   function handleScroll() {
     const link = document.createElement("a");
     link.href = "#contact";
@@ -50,21 +77,24 @@ const Profile = ({ ref }) => {
         </div>
         <div className="social-media-icon">
           <a
-            href="https://www.instagram.com/am.sanjayyyy?igsh=MWlvdzZ3MnN3ZDBwaQ%3D%3D&utm_source=qr"
-            target="blank"
+            href={socialLinks.instagram}
+            target="_blank"
+            rel="noreferrer"
           >
             <Instagram />
           </a>
           <a
             className="twitter"
-            href="https://twitter.com/sanjayamrnath"
-            target="blank"
+            href={socialLinks.twitter}
+            target="_blank"
+            rel="noreferrer"
           >
             X
           </a>
           <a
-            href="https://www.linkedin.com/in/sanjay-amarnath-44b74420a"
-            target="blank"
+            href={socialLinks.linkedin}
+            target="_blank"
+            rel="noreferrer"
           >
             <LinkedIn />
           </a>
