@@ -2,19 +2,10 @@ import "./contact.scss";
 import { ReactComponent as Phone } from "../../assets/svg/mobile.svg";
 import { ReactComponent as Location } from "../../assets/svg/location.svg";
 import { ReactComponent as Mail } from "../../assets/svg/mail.svg";
-import { useState } from "react";
 import { Button } from "@mui/material";
 import { ValidationError, useForm } from "@formspree/react";
 const Contact = () => {
-  // const [value, setValue] = useState({});
-
   const [state, handleSubmit] = useForm("moqzrqja");
-
-  const handleChange = (e) => {
-    // console.log(state)
-    const { value, name } = e.target;
-    // setValue((prev) => ({ ...prev, [name]: value }));
-  };
 
   return (
     <div className="contact container">
@@ -68,7 +59,6 @@ const Contact = () => {
                 <input
                   placeholder="Your Eamil"
                   className="submit-input"
-                  onChange={handleChange}
                   id="email"
                   type="email"
                   name="email"
@@ -86,7 +76,6 @@ const Contact = () => {
                   placeholder="Message"
                   rows="5"
                   cols="50"
-                  onChange={handleChange}
                   id="message"
                   name={"message"}
                 ></textarea>
