@@ -8,99 +8,98 @@ const Contact = () => {
   const [state, handleSubmit] = useForm("moqzrqja");
 
   return (
-    <div className="contact container">
+    <section className="contact container reveal-up" id="contact">
       <div className="title">
-        <span>Contact</span>
-        <h1>
-          Let’s Discuss <span>With Me</span>
-        </h1>
+        <span className="section-index">03 — SAY HELLO</span>
+        <h2>Have a good one<span> in mind?</span></h2>
         <p>
-          Let’s make something new, different and more meaningful or make thing
-          more visual or conceptual
+          Have a project, an idea, or just want to talk about good interfaces?
+          I’d love to hear from you.
         </p>
       </div>
-      <div className="input-form">
-        <div className="details-data col-md-4">
-          <div className="data">
-            <div className="icon">
-              <Phone />
-            </div>
-            <div className="user-data">
-              <p>Call me</p>
-              <h3>+91 6383289495</h3>
-            </div>
+      <div className="contact-panel">
+        <div className="details-data">
+          <div className="contact-details-heading">
+            <span>LET’S MAKE IT HAPPEN</span>
+            <p>Tell me a little about what you’re building.</p>
           </div>
+          <a className="data" href="tel:+916383289495">
+            <span className="icon"><Phone /></span>
+            <span className="user-data">
+              <span>CALL ME</span>
+              <strong>+91 63832 89495</strong>
+            </span>
+          </a>
+          <a className="data" href="mailto:sanjaymrnth@gmail.com">
+            <span className="icon"><Mail /></span>
+            <span className="user-data">
+              <span>EMAIL ME</span>
+              <strong>sanjaymrnth@gmail.com</strong>
+            </span>
+          </a>
           <div className="data">
-            <div className="icon">
-              <Mail />
-            </div>
-            <div className="user-data">
-              <p>Email me</p>
-              <h3>sanjaymrnth@gmail.com</h3>
-            </div>
+            <span className="icon"><Location /></span>
+            <span className="user-data">
+              <span>BASED IN</span>
+              <strong>Pernambut, Vellore, India</strong>
+            </span>
           </div>
-          <div className="data">
-            <div className="icon">
-              <Location />
-            </div>
-            <div className="user-data">
-              <p>Address</p>
-              <h3>Pernambut,Vellore,India</h3>
-            </div>
+          <div className="contact-note">
+            <span className="status-dot" aria-hidden="true" />
+            <span>Good conversations start with a hello.</span>
           </div>
         </div>
-        <div className="input-div row col-md-8 p-0">
+        <div className="input-div">
           {state.succeeded ? (
-            <p className="text-center">Message Sented !</p>
+            <div className="form-success" role="status">
+              <span>MESSAGE SENT</span>
+              <h3>Thanks for reaching out.</h3>
+              <p>I’ll be in touch as soon as I can.</p>
+            </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <div className={"col-md-6"}>
-                <label htmlFor="email">Email</label>
-                <input
-                  placeholder="Your Eamil"
-                  className="submit-input"
-                  id="email"
-                  type="email"
-                  name="email"
-                />
-                <ValidationError
-                  prefix="email"
-                  field="email"
-                  errors={state.errors}
-                />
-              </div>
-              <div className={"col-md-12"}>
-                <label htmlFor="message">Message</label>
-                <textarea
-                  className="col-md-12"
-                  placeholder="Message"
-                  rows="5"
-                  cols="50"
-                  id="message"
-                  name={"message"}
-                ></textarea>
-                <ValidationError
-                  prefix="message"
-                  field="message"
-                  errors={state.errors}
-                />
-              </div>
-              <div className="submit-div col-md-12">
-                <Button
-                  variant="contained"
-                  type="submit"
-                  className="submit-btn"
-                >
-                  {" "}
-                  submit message
-                </Button>
-              </div>
+              <label htmlFor="email">Your email</label>
+              <input
+                placeholder="you@example.com"
+                className="submit-input"
+                id="email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+              />
+              <ValidationError
+                prefix="email"
+                field="email"
+                errors={state.errors}
+              />
+              <label htmlFor="message">A little about your idea</label>
+              <textarea
+                placeholder="What are you thinking about?"
+                rows="5"
+                id="message"
+                name="message"
+                required
+              />
+              <ValidationError
+                prefix="message"
+                field="message"
+                errors={state.errors}
+              />
+              <Button
+                variant="contained"
+                type="submit"
+                className="submit-btn"
+                disabled={state.submitting}
+              >
+                {state.submitting ? "Sending..." : "Send a message"}
+                <span aria-hidden="true">↗</span>
+              </Button>
             </form>
           )}
         </div>
-        <div></div>
       </div>
-    </div>
+    </section>
   );
 };
 export default Contact;

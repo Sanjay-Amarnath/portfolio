@@ -1,16 +1,111 @@
-.count-div {
-  display: flex;
-  justify-content: space-evenly;
-  .center-border {
-    height: 80px;
-    width: 1px;
-    background: var(--light-green);
-    opacity: 0.5;
+.portfolio-shell .count-div {
+  width: min(100% - 64px, 1200px);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 0;
+  display: grid;
+  grid-template-columns: 1.7fr repeat(3, 1fr);
+  align-items: center;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+
+  .experience-statement {
+    padding-right: 30px;
+
+    .section-index {
+      color: var(--accent-strong);
+      font-family: "DM Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+    }
+
+    p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    strong {
+      color: var(--text);
+      font-weight: 550;
+    }
   }
-  p {
-    font-weight: 600;
+
+  .experience-stat {
+    min-height: 66px;
+    padding: 3px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-left: 1px solid var(--line);
+
+    > strong {
+      color: var(--text);
+      font-size: 23px;
+      font-weight: 650;
+      letter-spacing: -0.055em;
+      line-height: 1.05;
+
+      span {
+        color: var(--accent-strong);
+      }
+    }
+
+    > span {
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.55;
+    }
   }
-  h1 {
-    font-weight: 600;
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 650ms ease, transform 650ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.reveal-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 680px) {
+  .portfolio-shell .count-div {
+    width: calc(100% - 36px);
+    padding: 22px 0;
+    grid-template-columns: repeat(3, 1fr);
+
+    .experience-statement {
+      grid-column: 1 / -1;
+      padding: 0 0 17px;
+    }
+
+    .experience-stat {
+      padding: 5px 12px;
+    }
+
+    .experience-stat:nth-of-type(2) {
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .experience-stat > strong {
+      font-size: 19px;
+    }
+
+    .experience-stat > span {
+      font-size: 9px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

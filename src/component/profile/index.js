@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import "./profile.scss";
-import { ReactComponent as Rectangle } from "../../assets/svg/Rectangle.svg";
 import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
 import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
 import SanjayPic from "../../assets/image/sanjay.png";
-import { Button } from "@mui/material";
 import { getFirebaseServices, isFirebaseConfigured } from "../../firebase";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
-const Profile = ({ ref }) => {
+import SplitFlapText from "../animations/SplitFlapText";
+
+const Profile = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
 
   useEffect(() => {
@@ -32,75 +32,66 @@ const Profile = ({ ref }) => {
     };
   }, []);
 
-  function handleScroll() {
-    const link = document.createElement("a");
-    link.href = "#contact";
-    link.click();
-  }
-
   return (
-    <div className="Profile-section container" ref={ref}>
-      <div className="user-details-div ">
-        <span>
-          Hi <span className="emoji">👋</span>
-        </span>
-        ,
-        <h1>
-          I am <span>Creative React </span>Developer,
-        </h1>
-        <p>
-          Developed user interface components using React.js and Bootstrap,
-          Utilized React.js, JavaScript, and HTML/CSS to develop reusable UI
-          components
+    <section className="Profile-section container" id="about" aria-labelledby="hero-title">
+      <div className="user-details-div">
+        <p className="hero-kicker">
+          <span className="status-dot" aria-hidden="true" />
+          REACT DEVELOPER <span className="kicker-divider">/</span> UI ENGINEERING
         </p>
-        <div className="contact-div">
-          <a href="mailto:sanjaymrnth@gmail.com">
-            <Button
-              className="contact-button"
-              variant="contained"
-              onClick={handleScroll}
-            >
-              Contact Me
-            </Button>
+        <h1 id="hero-title">
+          I build digital
+          <br />
+          <SplitFlapText text="experiences." />
+        </h1>
+        <p className="hero-description">
+          I’m Sanjay Amarnath — a React developer with 5+ years of experience
+          creating thoughtful, responsive interfaces. I turn complex ideas
+          into clear, polished experiences, from reusable components to
+          connected APIs.
+        </p>
+        <div className="hero-actions">
+          <a className="primary-action" href="#contact">
+            Let’s work together
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 10h11m-4-4 4 4-4 4" />
+            </svg>
           </a>
+          <a className="text-action" href="#expertise">Explore my expertise</a>
         </div>
-      </div>
-      <div className="user-profile-div">
-        <div className="rectangle">
-          <Rectangle />
-          <img src={SanjayPic} alt="Sanjay-Profile" />
-        </div>
-      </div>
-      <div className="social-media-div">
-        <div className="follow-me">
-          <p>Follow Me On</p>
-        </div>
-        <div className="social-media-icon">
-          <a
-            href={socialLinks.instagram}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Instagram />
-          </a>
-          <a
-            className="twitter"
-            href={socialLinks.twitter}
-            target="_blank"
-            rel="noreferrer"
-          >
-            X
-          </a>
-          <a
-            href={socialLinks.linkedin}
-            target="_blank"
-            rel="noreferrer"
-          >
+        <div className="hero-socials" aria-label="Social profiles">
+          <span>FIND ME</span>
+          <a href={socialLinks.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
             <LinkedIn />
           </a>
+          <a href={socialLinks.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+            <Instagram />
+          </a>
+          <a className="social-x" href={socialLinks.twitter} target="_blank" rel="noreferrer" aria-label="X">
+            𝕏
+          </a>
         </div>
       </div>
-    </div>
+      <div className="user-profile-div" aria-label="Sanjay Amarnath portrait">
+        <div className="portrait-scene">
+          <div className="portrait-orbit portrait-orbit-one" />
+          <div className="portrait-orbit portrait-orbit-two" />
+          <div className="portrait-backdrop">
+            <span className="portrait-index">SA <i>/ REACT</i></span>
+            <span className="portrait-stamp">DESIGN<br />WITH<br /><b>INTENT.</b></span>
+          </div>
+          <div className="portrait-card">
+            <img src={SanjayPic} alt="Portrait of Sanjay Amarnath" />
+          </div>
+          <div className="experience-float">
+            <strong>5<span>+</span></strong>
+            <span>years<br />of experience</span>
+          </div>
+          <span className="hero-coordinate">LAT 12.9° N&nbsp; / &nbsp;MADE FOR THE WEB</span>
+        </div>
+      </div>
+    </section>
   );
 };
+
 export default Profile;

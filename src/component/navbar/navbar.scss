@@ -1,42 +1,206 @@
-@import "../../scss/_mixins.scss";
-.navbar {
-  background: var(--white);
+.navbar-wrap {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--nav-surface);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.portfolio-shell .navbar {
+  width: min(100% - 64px, 1200px);
+  max-width: 1200px;
+  min-height: 80px;
+  margin: 0 auto;
+  padding: 0;
   display: flex;
-  padding: 58px 0 58px 0;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: space-between;
-  font-weight: 500;
-  position: relative;
-  .logo {
-    cursor: pointer;
+  gap: 30px;
+  background: transparent;
+}
+
+.portfolio-shell .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.logo-monogram {
+  display: flex;
+  width: 37px;
+  height: 37px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #09100b;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  gap: 1px;
+
+  span {
+    color: #fff;
   }
-  @include mobile {
-    justify-content: center;
-    padding: 20px 0 20px 0;
-    gap: 17px;
-    svg {
-      position: absolute;
-      top: 0;
-      right: 0;
-      display: none;
+}
+
+.logo-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.portfolio-shell .navbar .pages-div {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 3vw, 38px);
+
+  .topics {
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 180ms ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--accent-strong);
     }
   }
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease;
+
+  &:hover {
+    transform: rotate(-12deg);
+    border-color: var(--accent);
+  }
+
   svg {
-    position: absolute;
-    z-index: -1;
-    top: 0;
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
   }
-  .pages-div {
-    display: flex;
-    gap: 40px;
+}
+
+.resume-link,
+.primary-action {
+  display: inline-flex;
+  min-height: 43px;
+  padding: 0 17px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: var(--accent);
+  color: #09100b;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--accent-shadow);
+    color: #09100b;
+    text-decoration: none;
+  }
+
+  svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+  }
+}
+
+@media (max-width: 680px) {
+  .portfolio-shell .navbar {
+    width: min(100% - 32px, 1200px);
+    min-height: 70px;
+    gap: 12px;
+  }
+
+  .logo-name {
+    display: none;
+  }
+
+  .portfolio-shell .navbar .pages-div {
+    gap: 14px;
     .topics {
-      cursor: pointer;
+      font-size: 12px;
     }
   }
-  .cv-div {
-    .cv-button {
-      border: 1px solid #0db760;
-      color: var(--black);
-      font-weight: 500;
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .resume-link {
+    min-height: 38px;
+    padding: 0 11px;
+    gap: 5px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 390px) {
+  .portfolio-shell .navbar {
+    width: calc(100% - 24px);
+    gap: 8px;
+  }
+
+  .portfolio-shell .navbar .pages-div {
+    gap: 8px;
+
+    .topics {
+      font-size: 10px;
     }
+  }
+
+  .resume-link {
+    min-height: 35px;
+    padding: 0 7px;
+    font-size: 10px;
+  }
+
+  .theme-toggle {
+    width: 32px;
+    height: 32px;
+    padding: 7px;
   }
 }
