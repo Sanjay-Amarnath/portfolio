@@ -10,6 +10,7 @@ import {
   getDownloadURL,
   ref,
   uploadBytes,
+  uploadBytesResumable,
 } from "firebase/storage";
 import {
   ADMIN_EMAIL,
@@ -24,6 +25,7 @@ import {
   SOCIAL_LINKS_STORAGE_PATH,
   validateSocialLinks,
 } from "../../socialLinks";
+import { waitForUploadTask } from "../../resumeUpload";
 import "./admin.scss";
 
 const isMissingResume = (error) => error.code === "storage/object-not-found";
@@ -35,6 +37,7 @@ const Admin = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -50,7 +53,9 @@ const Admin = () => {
       services = getFirebaseServices();
     } catch (initializationError) {
       setAuthLoaded(true);
-      setError(`Firebase initialization failed: ${initializationError.message}`);
+      setError(
+        `Firebase initialization failed: ${initializationError.message}`,
+      );
       return undefined;
     }
     const { auth, storage } = services;
@@ -65,7 +70,10 @@ const Admin = () => {
         try {
           await signOut(auth);
         } catch (signOutError) {
-          if (isMounted) setError(`Could not end the unauthorized session: ${signOutError.message}`);
+          if (isMounted)
+            setError(
+              `Could not end the unauthorized session: ${signOutError.message}`,
+            );
         }
         return;
       }
@@ -85,9 +93,12 @@ const Admin = () => {
         .catch((linksError) => {
           if (isMounted) {
             setError((currentError) =>
-              [currentError, `Could not load social links: ${linksError.message}`]
+              [
+                currentError,
+                `Could not load social links: ${linksError.message}`,
+              ]
                 .filter(Boolean)
-                .join(" ")
+                .join(" "),
             );
           }
         });
@@ -99,7 +110,9 @@ const Admin = () => {
         if (isMounted) {
           setResumeUrl("");
           if (!isMissingResume(resumeError)) {
-            setError(`Could not load the current resume: ${resumeError.message}`);
+            setError(
+              `Could not load the current resume: ${resumeError.message}`,
+            );
           }
         }
       }
@@ -169,21 +182,27 @@ const Admin = () => {
     setError("");
     setNotice("");
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const { storage } = getFirebaseServices();
       const resumeRef = ref(storage, RESUME_STORAGE_PATH);
-      const snapshot = await uploadBytes(resumeRef, selectedFile, {
+      const uploadTask = uploadBytesResumable(resumeRef, selectedFile, {
         contentType: "application/pdf",
       });
+      const snapshot = await waitForUploadTask(uploadTask, setUploadProgress);
       const url = await getDownloadURL(snapshot.ref);
       setResumeUrl(url);
       setSelectedFile(null);
       form.reset();
       setNotice("Resume uploaded. The previous resume has been replaced.");
     } catch (uploadError) {
-      setError(`Upload failed: ${uploadError.message}`);
+      const detail = uploadError.code
+        ? `${uploadError.code}: ${uploadError.message}`
+        : uploadError.message;
+      setError(`Upload failed: ${detail}`);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -213,8 +232,10 @@ const Admin = () => {
       const linksRef = ref(storage, SOCIAL_LINKS_STORAGE_PATH);
       await uploadBytes(
         linksRef,
-        new Blob([JSON.stringify(validatedLinks)], { type: "application/json" }),
-        { contentType: "application/json" }
+        new Blob([JSON.stringify(validatedLinks)], {
+          type: "application/json",
+        }),
+        { contentType: "application/json" },
       );
       setSocialLinks(validatedLinks);
       setNotice("Social media links updated.");
@@ -261,8 +282,16 @@ const Admin = () => {
           social links shown on the portfolio.
         </p>
 
-        {error && <p className="admin-message admin-error" role="alert">{error}</p>}
-        {notice && <p className="admin-message admin-success" role="status">{notice}</p>}
+        {error && (
+          <p className="admin-message admin-error" role="alert">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="admin-message admin-success" role="status">
+            {notice}
+          </p>
+        )}
 
         {!user ? (
           <button className="admin-button" type="button" onClick={handleSignIn}>
@@ -272,7 +301,11 @@ const Admin = () => {
           <>
             <div className="admin-account">
               <span>Signed in as {user.email}</span>
-              <button className="admin-text-button" type="button" onClick={handleSignOut}>
+              <button
+                className="admin-text-button"
+                type="button"
+                onClick={handleSignOut}
+              >
                 Sign out
               </button>
             </div>
@@ -299,7 +332,19 @@ const Admin = () => {
                 onChange={handleFileChange}
                 disabled={isUploading}
               />
-              <p className="admin-help">PDF only, up to 10 MB. Uploading replaces the existing resume.</p>
+              <p className="admin-help">
+                PDF only, up to 10 MB. Uploading replaces the existing resume.
+              </p>
+              {isUploading && (
+                <div className="admin-upload-progress" aria-live="polite">
+                  <progress
+                    aria-label="Resume upload progress"
+                    max="100"
+                    value={uploadProgress}
+                  />
+                  <span style={{ marginLeft: "10px" }}>{uploadProgress}%</span>
+                </div>
+              )}
               <button
                 className="admin-button"
                 type="submit"
@@ -309,7 +354,10 @@ const Admin = () => {
               </button>
             </form>
 
-            <form className="admin-social-form" onSubmit={handleSocialLinksSave}>
+            <form
+              className="admin-social-form"
+              onSubmit={handleSocialLinksSave}
+            >
               <h2>Social media links</h2>
               <label className="admin-file-label" htmlFor="instagram-url">
                 Instagram URL
@@ -359,7 +407,9 @@ const Admin = () => {
           </>
         )}
 
-        <a className="admin-back-link" href="/">Back to portfolio</a>
+        <a className="admin-back-link" href="/">
+          Back to portfolio
+        </a>
       </section>
     </main>
   );
