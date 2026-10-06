@@ -46,12 +46,36 @@
     }
   }
 
-  input[type="file"] {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 12px;
-    border: 1px solid #d4ddd8;
-    border-radius: 8px;
+  .admin-assets {
+    display: grid;
+    gap: 18px;
+    margin: 24px 0;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #edf0ee;
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+  }
+
+  .admin-asset-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .admin-profile-asset img {
+    width: 76px;
+    height: 76px;
+    flex: 0 0 76px;
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   input[type="url"] {
@@ -113,20 +137,6 @@
   color: #087a43;
   font: inherit;
   cursor: pointer;
-}
-
-.admin-current-resume {
-  margin: 24px 0;
-
-  h2 {
-    margin: 0 0 8px;
-    font-size: 18px;
-  }
-
-  p {
-    margin: 0;
-    color: #68736d;
-  }
 }
 
 .admin-file-label {

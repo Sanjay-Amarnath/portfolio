@@ -1,38 +1,33 @@
 import { useEffect, useState } from "react";
 import "./navbar.scss";
-import localResume from "../../assets/file/Resume.pdf";
+import { getDownloadURL, ref } from "firebase/storage";
 import {
   getFirebaseServices,
   isFirebaseConfigured,
   RESUME_STORAGE_PATH,
 } from "../../firebase";
-import { getDownloadURL, ref } from "firebase/storage";
 
 const Navbar = ({ theme, onToggleTheme }) => {
-  const [resumeUrl, setResumeUrl] = useState(localResume);
   const [activeSection, setActiveSection] = useState("about");
+  const [resumeUrl, setResumeUrl] = useState("/data/Resume.pdf");
 
   useEffect(() => {
     if (!isFirebaseConfigured) return undefined;
-
     let isMounted = true;
-    let storage;
     try {
-      ({ storage } = getFirebaseServices());
+      const { storage } = getFirebaseServices();
+      getDownloadURL(ref(storage, RESUME_STORAGE_PATH))
+        .then((url) => {
+          if (isMounted) setResumeUrl(url);
+        })
+        .catch((error) => {
+          if (error.code !== "storage/object-not-found") {
+            console.error("Could not load the hosted resume:", error);
+          }
+        });
     } catch (error) {
       console.error("Could not initialize Firebase for the resume:", error);
-      return undefined;
     }
-    getDownloadURL(ref(storage, RESUME_STORAGE_PATH))
-      .then((url) => {
-        if (isMounted) setResumeUrl(url);
-      })
-      .catch((error) => {
-        if (error.code !== "storage/object-not-found") {
-          console.error("Could not load the Firebase resume:", error);
-        }
-      });
-
     return () => {
       isMounted = false;
     };
@@ -47,10 +42,12 @@ const Navbar = ({ theme, onToggleTheme }) => {
       (entries) => {
         const visibleSections = entries
           .filter((entry) => entry.isIntersecting)
-          .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+          .sort(
+            (left, right) => right.intersectionRatio - left.intersectionRatio,
+          );
         if (visibleSections[0]) setActiveSection(visibleSections[0].target.id);
       },
-      { rootMargin: "-25% 0px -55% 0px", threshold: [0, 0.2, 0.5, 1] }
+      { rootMargin: "-25% 0px -55% 0px", threshold: [0, 0.2, 0.5, 1] },
     );
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
@@ -64,12 +61,34 @@ const Navbar = ({ theme, onToggleTheme }) => {
             <span className="logo-mark-initial">S</span>
             <span className="logo-mark-period">.</span>
           </span>
-          <span className="logo-name">SANJAY AMARNATH<small>DEVELOPER / EXPLORER</small></span>
+          <span className="logo-name">
+            SANJAY AMARNATH<small>DEVELOPER / EXPLORER</small>
+          </span>
         </a>
         <div className="pages-div">
-          <a className="topics" href="#about" aria-current={activeSection === "about" ? "location" : undefined}><span>01</span> Crew</a>
-          <a className="topics" href="#expertise" aria-current={activeSection === "expertise" ? "location" : undefined}><span>02</span> Field notes</a>
-          <a className="topics" href="#contact" aria-current={activeSection === "contact" ? "location" : undefined}><span>03</span> Signal</a>
+          <a
+            className="topics"
+            href="#about"
+            aria-current={activeSection === "about" ? "location" : undefined}
+          >
+            <span>01</span> Crew
+          </a>
+          <a
+            className="topics"
+            href="#expertise"
+            aria-current={
+              activeSection === "expertise" ? "location" : undefined
+            }
+          >
+            <span>02</span> Field notes
+          </a>
+          <a
+            className="topics"
+            href="#contact"
+            aria-current={activeSection === "contact" ? "location" : undefined}
+          >
+            <span>03</span> Signal
+          </a>
         </div>
         <div className="nav-actions">
           <button
@@ -91,7 +110,12 @@ const Navbar = ({ theme, onToggleTheme }) => {
               </svg>
             )}
           </button>
-          <a className="resume-link" href={resumeUrl} target="_blank" rel="noreferrer">
+          <a
+            className="resume-link"
+            href={resumeUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
             <span>Resume</span>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M4 10h11m-4-4 4 4-4 4" />

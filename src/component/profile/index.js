@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import "./profile.scss";
 import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
 import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
-import SanjayPic from "../../assets/image/sanjay.png";
+import { getDownloadURL, ref } from "firebase/storage";
 import { getFirebaseServices, isFirebaseConfigured } from "../../firebase";
+import { PROFILE_IMAGE_STORAGE_PATH } from "../../firebase";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
 import ParticleTextCanvas from "../animations/ParticleTextCanvas";
 
 const Profile = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
+  const [profileImageUrl, setProfileImageUrl] = useState("/images/sanjay.png");
 
   useEffect(() => {
     if (!isFirebaseConfigured) return undefined;
@@ -16,6 +18,14 @@ const Profile = () => {
     let isMounted = true;
     try {
       const { storage } = getFirebaseServices();
+      getDownloadURL(ref(storage, PROFILE_IMAGE_STORAGE_PATH))
+        .then((url) => {
+          if (isMounted) setProfileImageUrl(url);
+        })
+        .catch((error) => {
+          if (error.code !== "storage/object-not-found")
+            console.error("Could not load portfolio profile image:", error);
+        });
       loadSocialLinks(storage)
         .then((links) => {
           if (isMounted) setSocialLinks(links);
@@ -33,7 +43,11 @@ const Profile = () => {
   }, []);
 
   return (
-    <section className="Profile-section" id="about" aria-labelledby="hero-title">
+    <section
+      className="Profile-section"
+      id="about"
+      aria-labelledby="hero-title"
+    >
       <div className="hero-coordinate-grid" aria-hidden="true" />
       <div className="hero-map-label" aria-hidden="true">
         <span>CHART 01</span>
@@ -42,7 +56,8 @@ const Profile = () => {
       <div className="hero-copy">
         <p className="hero-kicker">
           <span className="status-dot" aria-hidden="true" />
-          FRONTEND DEVELOPER <span className="kicker-divider">/</span> OPEN TO THE NEXT VOYAGE
+          FRONTEND DEVELOPER <span className="kicker-divider">/</span> OPEN TO
+          THE NEXT VOYAGE
         </p>
         <p className="hero-overline">A DEVELOPER’S FIELD NOTES — 2026</p>
         <h1 id="hero-title">
@@ -68,13 +83,29 @@ const Profile = () => {
         </div>
         <div className="hero-socials" aria-label="Social profiles">
           <span>RADIO LINKS</span>
-          <a href={socialLinks.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
+          <a
+            href={socialLinks.linkedin}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="LinkedIn"
+          >
             <LinkedIn />
           </a>
-          <a href={socialLinks.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+          <a
+            href={socialLinks.instagram}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Instagram"
+          >
             <Instagram />
           </a>
-          <a className="social-x" href={socialLinks.twitter} target="_blank" rel="noreferrer" aria-label="X">
+          <a
+            className="social-x"
+            href={socialLinks.twitter}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="X"
+          >
             𝕏
           </a>
         </div>
@@ -95,15 +126,21 @@ const Profile = () => {
         <ParticleTextCanvas text="MAKE WAVES" />
         <div className="portrait-card">
           <span className="portrait-card-tag">THE HUMAN BEHIND THE PIXELS</span>
-          <img src={SanjayPic} alt="Portrait of Sanjay Amarnath" />
+          <img src={profileImageUrl} alt="Portrait of Sanjay Amarnath" />
           <div className="portrait-card-caption">
             <span>SA / 01</span>
             <span>BUILD WITH INTENT</span>
           </div>
         </div>
         <div className="experience-stamp">
-          <strong>5<sup>+</sup></strong>
-          <span>YEARS<br />ON DECK</span>
+          <strong>
+            5<sup>+</sup>
+          </strong>
+          <span>
+            YEARS
+            <br />
+            ON DECK
+          </span>
         </div>
         <div className="hero-squiggle" aria-hidden="true">
           <svg viewBox="0 0 180 54">
@@ -111,7 +148,9 @@ const Profile = () => {
             <path d="M2 48C25 48 25 24 49 24s24 30 49 30 24-29 49-29 23 16 31 16" />
           </svg>
         </div>
-        <p className="illustration-caption">A LITTLE CURIOSITY GOES A LONG WAY.</p>
+        <p className="illustration-caption">
+          A LITTLE CURIOSITY GOES A LONG WAY.
+        </p>
       </div>
       <a className="scroll-indicator" href="#experience">
         <span>SCROLL TO EXPLORE</span>

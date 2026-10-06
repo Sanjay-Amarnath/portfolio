@@ -13,13 +13,18 @@ const firebaseConfig = {
 
 export const ADMIN_EMAIL = "sanjaymrnth@gmail.com";
 export const RESUME_STORAGE_PATH = "resumes/current.pdf";
+export const PROFILE_IMAGE_STORAGE_PATH = "images/profile";
 export const MAX_RESUME_SIZE = 10 * 1024 * 1024;
+export const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024;
 
-export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
+export const isFirebaseConfigured =
+  Object.values(firebaseConfig).every(Boolean);
 
 export function getFirebaseServices() {
   if (!isFirebaseConfigured) {
-    throw new Error("Firebase is not configured. Add the required REACT_APP_FIREBASE_* environment variables.");
+    throw new Error(
+      "Firebase is not configured. Add the required REACT_APP_FIREBASE_* environment variables.",
+    );
   }
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);

@@ -16,7 +16,9 @@ import {
   ADMIN_EMAIL,
   getFirebaseServices,
   isFirebaseConfigured,
+  MAX_PROFILE_IMAGE_SIZE,
   MAX_RESUME_SIZE,
+  PROFILE_IMAGE_STORAGE_PATH,
   RESUME_STORAGE_PATH,
 } from "../../firebase";
 import {
@@ -28,16 +30,19 @@ import {
 import { waitForUploadTask } from "../../resumeUpload";
 import "./admin.scss";
 
-const isMissingResume = (error) => error.code === "storage/object-not-found";
+const isMissingAsset = (error) => error.code === "storage/object-not-found";
 
 const Admin = () => {
   const [user, setUser] = useState(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [resumeUrl, setResumeUrl] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedResume, setSelectedResume] = useState(null);
+  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [resumeUploadProgress, setResumeUploadProgress] = useState(0);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -53,11 +58,10 @@ const Admin = () => {
       services = getFirebaseServices();
     } catch (initializationError) {
       setAuthLoaded(true);
-      setError(
-        `Firebase initialization failed: ${initializationError.message}`,
-      );
+      setError(`Firebase initialization failed: ${initializationError.message}`);
       return undefined;
     }
+
     const { auth, storage } = services;
     let isMounted = true;
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
@@ -70,10 +74,9 @@ const Admin = () => {
         try {
           await signOut(auth);
         } catch (signOutError) {
-          if (isMounted)
-            setError(
-              `Could not end the unauthorized session: ${signOutError.message}`,
-            );
+          if (isMounted) {
+            setError(`Could not end the unauthorized session: ${signOutError.message}`);
+          }
         }
         return;
       }
@@ -82,40 +85,38 @@ const Admin = () => {
       setUser(nextUser);
       if (!nextUser) {
         setResumeUrl("");
+        setProfileImageUrl("");
         setSocialLinks(DEFAULT_SOCIAL_LINKS);
         return;
       }
 
+      const loadAssetUrl = async (path, setUrl, label) => {
+        try {
+          const url = await getDownloadURL(ref(storage, path));
+          if (isMounted) setUrl(url);
+        } catch (assetError) {
+          if (!isMounted) return;
+          setUrl("");
+          if (!isMissingAsset(assetError)) {
+            setError(`${label} could not be loaded: ${assetError.message}`);
+          }
+        }
+      };
+
+      loadAssetUrl(RESUME_STORAGE_PATH, setResumeUrl, "Resume");
+      loadAssetUrl(PROFILE_IMAGE_STORAGE_PATH, setProfileImageUrl, "Profile image");
       loadSocialLinks(storage)
         .then((links) => {
           if (isMounted) setSocialLinks(links);
         })
         .catch((linksError) => {
           if (isMounted) {
-            setError((currentError) =>
-              [
-                currentError,
-                `Could not load social links: ${linksError.message}`,
-              ]
-                .filter(Boolean)
-                .join(" "),
-            );
+            setError((currentError) => [
+              currentError,
+              `Could not load social links: ${linksError.message}`,
+            ].filter(Boolean).join(" "));
           }
         });
-
-      try {
-        const url = await getDownloadURL(ref(storage, RESUME_STORAGE_PATH));
-        if (isMounted) setResumeUrl(url);
-      } catch (resumeError) {
-        if (isMounted) {
-          setResumeUrl("");
-          if (!isMissingResume(resumeError)) {
-            setError(
-              `Could not load the current resume: ${resumeError.message}`,
-            );
-          }
-        }
-      }
     });
 
     return () => {
@@ -154,57 +155,92 @@ const Admin = () => {
     }
   };
 
-  const handleFileChange = (event) => {
+  const handleAssetSelection = (
+    event,
+    setSelectedFile,
+    allowedTypes,
+    maxSize,
+    description,
+  ) => {
     const file = event.target.files?.[0] || null;
     setSelectedFile(null);
     setError("");
     setNotice("");
-
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Choose a PDF file.");
+    if (!allowedTypes.includes(file.type)) {
+      setError(`Choose a supported ${description} file.`);
       event.target.value = "";
       return;
     }
-    if (file.size > MAX_RESUME_SIZE) {
-      setError("The PDF must be 10 MB or smaller.");
+    if (file.size > maxSize) {
+      setError(
+        `${description} must be ${Math.floor(maxSize / (1024 * 1024))} MB or smaller.`,
+      );
       event.target.value = "";
       return;
     }
     setSelectedFile(file);
   };
 
-  const handleUpload = async (event) => {
+  const uploadAsset = async (
+    event,
+    file,
+    path,
+    setUrl,
+    setSelectedFile,
+    setUploading,
+    message,
+    onProgress = () => {},
+  ) => {
     event.preventDefault();
-    if (!selectedFile || isUploading) return;
-
+    if (!file) return;
     const form = event.currentTarget;
     setError("");
     setNotice("");
-    setIsUploading(true);
-    setUploadProgress(0);
+    setUploading(true);
     try {
       const { storage } = getFirebaseServices();
-      const resumeRef = ref(storage, RESUME_STORAGE_PATH);
-      const uploadTask = uploadBytesResumable(resumeRef, selectedFile, {
-        contentType: "application/pdf",
-      });
-      const snapshot = await waitForUploadTask(uploadTask, setUploadProgress);
+      const assetRef = ref(storage, path);
+      const snapshot = await waitForUploadTask(
+        uploadBytesResumable(assetRef, file, { contentType: file.type }),
+        onProgress,
+      );
       const url = await getDownloadURL(snapshot.ref);
-      setResumeUrl(url);
+      setUrl(url);
       setSelectedFile(null);
       form.reset();
-      setNotice("Resume uploaded. The previous resume has been replaced.");
+      setNotice(message);
     } catch (uploadError) {
-      const detail = uploadError.code
-        ? `${uploadError.code}: ${uploadError.message}`
-        : uploadError.message;
-      setError(`Upload failed: ${detail}`);
+      setError(
+        `Upload failed: ${uploadError.code ? `${uploadError.code}: ` : ""}${uploadError.message}`,
+      );
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      setUploading(false);
     }
   };
+
+  const handleResumeUpload = (event) =>
+    uploadAsset(
+      event,
+      selectedResume,
+      RESUME_STORAGE_PATH,
+      setResumeUrl,
+      setSelectedResume,
+      setIsUploadingResume,
+      "Resume replaced. The portfolio now uses the new PDF.",
+      setResumeUploadProgress,
+    );
+
+  const handleProfileImageUpload = (event) =>
+    uploadAsset(
+      event,
+      selectedProfileImage,
+      PROFILE_IMAGE_STORAGE_PATH,
+      setProfileImageUrl,
+      setSelectedProfileImage,
+      setIsUploadingImage,
+      "Profile image replaced. The portfolio now uses the new image.",
+    );
 
   const handleSocialLinkChange = (event) => {
     const { name, value } = event.target;
@@ -278,8 +314,8 @@ const Admin = () => {
         <p className="admin-eyebrow">Portfolio management</p>
         <h1>Portfolio admin</h1>
         <p className="admin-intro">
-          Sign in with <strong>{ADMIN_EMAIL}</strong> to update the resume and
-          social links shown on the portfolio.
+          Sign in with <strong>{ADMIN_EMAIL}</strong> to update the resume,
+          profile image, and social links shown on the portfolio.
         </p>
 
         {error && (
@@ -310,54 +346,108 @@ const Admin = () => {
               </button>
             </div>
 
-            <div className="admin-current-resume">
-              <h2>Current resume</h2>
-              {resumeUrl ? (
-                <a href={resumeUrl} target="_blank" rel="noreferrer">
-                  View current PDF
-                </a>
-              ) : (
-                <p>No resume has been uploaded to Firebase yet.</p>
-              )}
-            </div>
+            <section className="admin-assets" aria-labelledby="admin-assets-title">
+              <h2 id="admin-assets-title">Portfolio assets</h2>
+              <form onSubmit={handleResumeUpload}>
+                <h3>Resume PDF</h3>
+                {resumeUrl ? (
+                  <a href={resumeUrl} target="_blank" rel="noreferrer">
+                    View current resume
+                  </a>
+                ) : (
+                  <a href="/data/Resume.pdf" target="_blank" rel="noreferrer">
+                    View fallback resume
+                  </a>
+                )}
+                <label className="admin-file-label" htmlFor="resume-file">
+                  Upload replacement PDF
+                </label>
+                <input
+                  id="resume-file"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={isUploadingResume}
+                  onChange={(event) =>
+                    handleAssetSelection(
+                      event,
+                      setSelectedResume,
+                      ["application/pdf"],
+                      MAX_RESUME_SIZE,
+                      "PDF",
+                    )
+                  }
+                />
+                <p className="admin-help">
+                  PDF, up to 10 MB. Uploading replaces the current hosted resume.
+                </p>
+                {isUploadingResume && (
+                  <p className="admin-help" role="status">
+                    Uploading resume: {resumeUploadProgress}%
+                  </p>
+                )}
+                <button
+                  className="admin-button"
+                  type="submit"
+                  disabled={!selectedResume || isUploadingResume}
+                >
+                  {isUploadingResume ? "Uploading resume..." : "Upload resume"}
+                </button>
+              </form>
 
-            <form onSubmit={handleUpload}>
-              <label className="admin-file-label" htmlFor="resume-file">
-                Upload a new PDF
-              </label>
-              <input
-                id="resume-file"
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={handleFileChange}
-                disabled={isUploading}
-              />
-              <p className="admin-help">
-                PDF only, up to 10 MB. Uploading replaces the existing resume.
-              </p>
-              {isUploading && (
-                <div className="admin-upload-progress" aria-live="polite">
-                  <progress
-                    aria-label="Resume upload progress"
-                    max="100"
-                    value={uploadProgress}
+              <form onSubmit={handleProfileImageUpload}>
+                <h3>Profile image</h3>
+                <div className="admin-asset-row admin-profile-asset">
+                  <img
+                    src={profileImageUrl || "/images/sanjay.png"}
+                    alt="Sanjay Amarnath"
                   />
-                  <span style={{ marginLeft: "10px" }}>{uploadProgress}%</span>
+                  {profileImageUrl ? (
+                    <a href={profileImageUrl} target="_blank" rel="noreferrer">
+                      View current image
+                    </a>
+                  ) : (
+                    <a href="/images/sanjay.png" target="_blank" rel="noreferrer">
+                      View fallback image
+                    </a>
+                  )}
                 </div>
-              )}
-              <button
-                className="admin-button"
-                type="submit"
-                disabled={!selectedFile || isUploading}
-              >
-                {isUploading ? "Uploading..." : "Upload resume"}
-              </button>
-            </form>
+                <label className="admin-file-label" htmlFor="profile-image-file">
+                  Upload replacement image
+                </label>
+                <input
+                  id="profile-image-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={isUploadingImage}
+                  onChange={(event) =>
+                    handleAssetSelection(
+                      event,
+                      setSelectedProfileImage,
+                      ["image/jpeg", "image/png", "image/webp"],
+                      MAX_PROFILE_IMAGE_SIZE,
+                      "image",
+                    )
+                  }
+                />
+                <p className="admin-help">
+                  JPG, PNG, or WebP, up to 5 MB. Uploading replaces the current
+                  hosted image.
+                </p>
+                <button
+                  className="admin-button"
+                  type="submit"
+                  disabled={!selectedProfileImage || isUploadingImage}
+                >
+                  {isUploadingImage ? "Uploading image..." : "Upload image"}
+                </button>
+              </form>
+              <p className="admin-help">
+                Uploads replace files at fixed Firebase Storage paths, so the
+                portfolio keeps stable links to the latest versions.
+              </p>
+            </section>
 
-            <form
-              className="admin-social-form"
-              onSubmit={handleSocialLinksSave}
-            >
+            <form className="admin-social-form" onSubmit={handleSocialLinksSave}>
               <h2>Social media links</h2>
               <label className="admin-file-label" htmlFor="instagram-url">
                 Instagram URL
