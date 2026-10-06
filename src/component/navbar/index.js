@@ -1,37 +1,9 @@
 import { useEffect, useState } from "react";
 import "./navbar.scss";
-import { getDownloadURL, ref } from "firebase/storage";
-import {
-  getFirebaseServices,
-  isFirebaseConfigured,
-  RESUME_STORAGE_PATH,
-} from "../../firebase";
 
 const Navbar = ({ theme, onToggleTheme }) => {
   const [activeSection, setActiveSection] = useState("about");
-  const [resumeUrl, setResumeUrl] = useState("/data/Resume.pdf");
-
-  useEffect(() => {
-    if (!isFirebaseConfigured) return undefined;
-    let isMounted = true;
-    try {
-      const { storage } = getFirebaseServices();
-      getDownloadURL(ref(storage, RESUME_STORAGE_PATH))
-        .then((url) => {
-          if (isMounted) setResumeUrl(url);
-        })
-        .catch((error) => {
-          if (error.code !== "storage/object-not-found") {
-            console.error("Could not load the hosted resume:", error);
-          }
-        });
-    } catch (error) {
-      console.error("Could not initialize Firebase for the resume:", error);
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const resumeUrl = "/data/Resume.pdf";
 
   useEffect(() => {
     if (!("IntersectionObserver" in window)) return undefined;

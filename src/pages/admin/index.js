@@ -7,36 +7,24 @@ import {
   signOut,
 } from "firebase/auth";
 import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-  uploadBytesResumable,
-} from "firebase/storage";
-import {
   ADMIN_EMAIL,
   getFirebaseServices,
   isFirebaseConfigured,
   MAX_PROFILE_IMAGE_SIZE,
   MAX_RESUME_SIZE,
-  PROFILE_IMAGE_STORAGE_PATH,
-  RESUME_STORAGE_PATH,
 } from "../../firebase";
 import {
   DEFAULT_SOCIAL_LINKS,
   loadSocialLinks,
-  SOCIAL_LINKS_STORAGE_PATH,
   validateSocialLinks,
 } from "../../socialLinks";
-import { waitForUploadTask } from "../../resumeUpload";
 import "./admin.scss";
-
-const isMissingAsset = (error) => error.code === "storage/object-not-found";
 
 const Admin = () => {
   const [user, setUser] = useState(null);
   const [authLoaded, setAuthLoaded] = useState(false);
-  const [resumeUrl, setResumeUrl] = useState("");
-  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [resumeUrl, setResumeUrl] = useState("/data/Resume.pdf");
+  const [profileImageUrl, setProfileImageUrl] = useState("/images/sanjay.png");
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
   const [selectedResume, setSelectedResume] = useState(null);
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
@@ -62,7 +50,7 @@ const Admin = () => {
       return undefined;
     }
 
-    const { auth, storage } = services;
+    const { auth } = services;
     let isMounted = true;
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       if (!isMounted) return;
@@ -83,29 +71,14 @@ const Admin = () => {
 
       if (nextUser) setError("");
       setUser(nextUser);
+      setResumeUrl("/data/Resume.pdf");
+      setProfileImageUrl("/images/sanjay.png");
       if (!nextUser) {
-        setResumeUrl("");
-        setProfileImageUrl("");
         setSocialLinks(DEFAULT_SOCIAL_LINKS);
         return;
       }
 
-      const loadAssetUrl = async (path, setUrl, label) => {
-        try {
-          const url = await getDownloadURL(ref(storage, path));
-          if (isMounted) setUrl(url);
-        } catch (assetError) {
-          if (!isMounted) return;
-          setUrl("");
-          if (!isMissingAsset(assetError)) {
-            setError(`${label} could not be loaded: ${assetError.message}`);
-          }
-        }
-      };
-
-      loadAssetUrl(RESUME_STORAGE_PATH, setResumeUrl, "Resume");
-      loadAssetUrl(PROFILE_IMAGE_STORAGE_PATH, setProfileImageUrl, "Profile image");
-      loadSocialLinks(storage)
+      loadSocialLinks()
         .then((links) => {
           if (isMounted) setSocialLinks(links);
         })
@@ -185,7 +158,7 @@ const Admin = () => {
   const uploadAsset = async (
     event,
     file,
-    path,
+    asset,
     setUrl,
     setSelectedFile,
     setUploading,
@@ -198,24 +171,58 @@ const Admin = () => {
     setError("");
     setNotice("");
     setUploading(true);
+    onProgress(0);
     try {
-      const { storage } = getFirebaseServices();
-      const assetRef = ref(storage, path);
-      const snapshot = await waitForUploadTask(
-        uploadBytesResumable(assetRef, file, { contentType: file.type }),
-        onProgress,
-      );
-      const url = await getDownloadURL(snapshot.ref);
-      setUrl(url);
+      const idToken = await user.getIdToken();
+      const responseBody = await new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open("PUT", `/api/admin-assets?asset=${encodeURIComponent(asset)}`);
+        request.setRequestHeader("Authorization", `Bearer ${idToken}`);
+        request.setRequestHeader("Content-Type", file.type);
+        request.upload.addEventListener("progress", (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            onProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
+          }
+        });
+        request.addEventListener("load", () => {
+          let result;
+          try {
+            result = JSON.parse(request.responseText);
+          } catch {
+            if (request.status === 404) {
+              reject(
+                new Error(
+                  "The upload API was not found. Stop npm start and run npm run dev:vercel to start the site with its API routes.",
+                ),
+              );
+              return;
+            }
+            reject(new Error("The upload service returned an invalid response."));
+            return;
+          }
+          if (request.status < 200 || request.status >= 300) {
+            reject(new Error(result.error || `Upload failed (HTTP ${request.status}).`));
+            return;
+          }
+          resolve(result);
+        });
+        request.addEventListener("error", () => {
+          reject(new Error("Could not reach the portfolio upload service."));
+        });
+        request.addEventListener("abort", () => {
+          reject(new Error("The upload was cancelled."));
+        });
+        request.send(file);
+      });
+      setUrl(responseBody.url);
       setSelectedFile(null);
       form.reset();
-      setNotice(message);
+      setNotice(`${message} ${responseBody.message}`);
     } catch (uploadError) {
-      setError(
-        `Upload failed: ${uploadError.code ? `${uploadError.code}: ` : ""}${uploadError.message}`,
-      );
+      setError(`Upload failed: ${uploadError.message}`);
     } finally {
       setUploading(false);
+      onProgress(0);
     }
   };
 
@@ -223,7 +230,7 @@ const Admin = () => {
     uploadAsset(
       event,
       selectedResume,
-      RESUME_STORAGE_PATH,
+      "resume",
       setResumeUrl,
       setSelectedResume,
       setIsUploadingResume,
@@ -235,7 +242,7 @@ const Admin = () => {
     uploadAsset(
       event,
       selectedProfileImage,
-      PROFILE_IMAGE_STORAGE_PATH,
+      "profileImage",
       setProfileImageUrl,
       setSelectedProfileImage,
       setIsUploadingImage,
@@ -264,17 +271,20 @@ const Admin = () => {
 
     setIsSavingLinks(true);
     try {
-      const { storage } = getFirebaseServices();
-      const linksRef = ref(storage, SOCIAL_LINKS_STORAGE_PATH);
-      await uploadBytes(
-        linksRef,
-        new Blob([JSON.stringify(validatedLinks)], {
-          type: "application/json",
-        }),
-        { contentType: "application/json" },
-      );
+      const { auth } = getFirebaseServices();
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch("/api/admin-assets?asset=socialLinks", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(validatedLinks),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save social links.");
       setSocialLinks(validatedLinks);
-      setNotice("Social media links updated.");
+      setNotice(`Social media links saved. ${result.message}`);
     } catch (saveError) {
       setError(`Could not save social links: ${saveError.message}`);
     } finally {
@@ -287,10 +297,11 @@ const Admin = () => {
       <main className="admin-page">
         <section className="admin-card">
           <p className="admin-eyebrow">Portfolio management</p>
-          <h1>Firebase setup required</h1>
+          <h1>Firebase sign-in setup required</h1>
           <p>
             Add the Firebase web app configuration variables described in the
-            README, then enable Google sign-in and apply the Storage rules.
+            README and enable Google sign-in. Portfolio files are committed to
+            the repository, not Firebase Storage.
           </p>
           <a href="/">Back to portfolio</a>
         </section>
@@ -355,7 +366,7 @@ const Admin = () => {
                     View current resume
                   </a>
                 ) : (
-                  <a href="/data/Resume.pdf" target="_blank" rel="noreferrer">
+                  <a href={resumeUrl} target="_blank" rel="noreferrer">
                     View fallback resume
                   </a>
                 )}
@@ -378,7 +389,7 @@ const Admin = () => {
                   }
                 />
                 <p className="admin-help">
-                  PDF, up to 10 MB. Uploading replaces the current hosted resume.
+                  PDF, up to 4 MB. Uploading replaces the current hosted resume.
                 </p>
                 {isUploadingResume && (
                   <p className="admin-help" role="status">
@@ -398,18 +409,12 @@ const Admin = () => {
                 <h3>Profile image</h3>
                 <div className="admin-asset-row admin-profile-asset">
                   <img
-                    src={profileImageUrl || "/images/sanjay.png"}
+                    src={profileImageUrl}
                     alt="Sanjay Amarnath"
                   />
-                  {profileImageUrl ? (
-                    <a href={profileImageUrl} target="_blank" rel="noreferrer">
-                      View current image
-                    </a>
-                  ) : (
-                    <a href="/images/sanjay.png" target="_blank" rel="noreferrer">
-                      View fallback image
-                    </a>
-                  )}
+                  <a href={profileImageUrl} target="_blank" rel="noreferrer">
+                    View current image
+                  </a>
                 </div>
                 <label className="admin-file-label" htmlFor="profile-image-file">
                   Upload replacement image
@@ -417,21 +422,21 @@ const Admin = () => {
                 <input
                   id="profile-image-file"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/png"
                   disabled={isUploadingImage}
                   onChange={(event) =>
                     handleAssetSelection(
                       event,
                       setSelectedProfileImage,
-                      ["image/jpeg", "image/png", "image/webp"],
+                      ["image/png"],
                       MAX_PROFILE_IMAGE_SIZE,
                       "image",
                     )
                   }
                 />
                 <p className="admin-help">
-                  JPG, PNG, or WebP, up to 5 MB. Uploading replaces the current
-                  hosted image.
+                  PNG up to 4 MB. Saving commits the replacement to the site
+                  repository and triggers a Vercel deployment.
                 </p>
                 <button
                   className="admin-button"
@@ -442,8 +447,8 @@ const Admin = () => {
                 </button>
               </form>
               <p className="admin-help">
-                Uploads replace files at fixed Firebase Storage paths, so the
-                portfolio keeps stable links to the latest versions.
+                Uploads are committed to the portfolio repository. The site
+                updates after Vercel finishes deploying the commit.
               </p>
             </section>
 
@@ -483,8 +488,8 @@ const Admin = () => {
                 required
               />
               <p className="admin-help">
-                Use a full http:// or https:// URL. Saving updates the links on
-                your public portfolio.
+                Use a full http:// or https:// URL. Saving commits the links to
+                the site repository; Vercel publishes them after deployment.
               </p>
               <button
                 className="admin-button"

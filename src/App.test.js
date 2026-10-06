@@ -4,7 +4,6 @@ import App from "./App";
 jest.mock("./firebase", () => ({
   getFirebaseServices: jest.fn(),
   isFirebaseConfigured: false,
-  RESUME_STORAGE_PATH: "resumes/current.pdf",
 }));
 
 test("renders the portfolio headline and sections", () => {

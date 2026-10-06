@@ -32,28 +32,45 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 ## Admin resume uploads
 
-The resume admin page is available at `/admin`. It uses Firebase Google
-sign-in and allows only `sanjaymrnth@gmail.com` to replace files in Firebase
-Storage. The portfolio Resume link reads `resumes/current.pdf`, and falls
-back to the checked-in `public/data/Resume.pdf` until an uploaded resume is
-available. The profile image and social links are stored in Firebase Storage
-as `images/profile` and `settings/social-links.json`.
+The admin page at `/admin` uses Firebase Google sign-in to authenticate
+`sanjaymrnth@gmail.com`. Resume, profile image, and social-link changes are
+committed to this public GitHub repository instead of Firebase Storage:
 
-### Firebase setup
+- `public/data/Resume.pdf` — PDF, up to 4 MB
+- `public/images/sanjay.png` — PNG, up to 4 MB
+- `public/data/social-links.json` — public profile URLs
 
-1. Register a Firebase web app. Enable **Google** in Firebase Authentication's
-   sign-in providers, then add the portfolio domain and `localhost` to the
-   authorized domains.
-2. Enable Firebase Storage.
-3. Copy `.env.example` to `.env.local` and fill in the Firebase web app
-   configuration values. Set the same `REACT_APP_FIREBASE_*` variables in
-   Vercel's project settings for deployed builds.
-4. Apply `storage.rules` to the Firebase Storage bucket. You can deploy the
-   rules with the Firebase CLI after selecting the project:
-   `firebase deploy --only storage --project YOUR_FIREBASE_PROJECT_ID`.
+The Vercel API verifies the Firebase ID token with Firebase Authentication and
+then uses a repository-scoped GitHub token to update only these fixed files.
+Each update creates a GitHub commit, which triggers the connected Vercel
+deployment. The live site reflects the change when that deployment completes.
+Firebase Storage is not used, so no Storage bucket or Blaze upgrade is needed.
 
-The rules allow public reads of the portfolio assets and writes only from the
-verified administrator account. Resume uploads accept PDFs up to 10 MB;
-profile-image uploads accept JPEG, PNG, or WebP up to 5 MB. Social links are
-written as a small JSON file. Uploading to each fixed path replaces the
-previous asset.
+### One-time setup
+
+1. In Firebase Authentication, enable Google sign-in and add the local and
+   deployed portfolio domains to **Authorized domains**. Firebase Auth remains
+   the only Firebase service used by the admin flow.
+2. Create a GitHub **fine-grained personal access token** for only this
+   repository. Grant **Contents: Read and write** (Metadata read is included).
+   Never put this token in React code or commit it.
+3. In Vercel project settings, add these environment variables to Development,
+   Preview, and Production as needed:
+   - `GITHUB_TOKEN` — the fine-grained token
+   - `GITHUB_REPOSITORY` — `Sanjay-Amarnath/portfolio`
+   - `GITHUB_BRANCH` — `main`
+   - `FIREBASE_API_KEY` — the same Firebase Web API key as
+     `REACT_APP_FIREBASE_API_KEY`
+   - The existing `REACT_APP_FIREBASE_*` web-app configuration values
+4. Copy `.env.example` to `.env.local` and fill in the same values locally.
+   Restart the development server after changing environment variables.
+   For local upload testing, stop `npm start` and run `npm run dev:vercel`.
+   This starts Vercel's local server, which serves both the React page and the
+   `api/` functions. On first use, the Vercel CLI may ask you to log in and link
+   the project. `npm start` alone serves only the React page, so `/api/*`
+   requests return 404.
+
+For security, the API checks the verified Firebase email, limits the accepted
+asset names, file types, and sizes, and never returns the GitHub token to the
+browser. The portfolio repository is public, so uploaded assets and social
+links are public too.

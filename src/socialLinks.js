@@ -1,7 +1,3 @@
-import { getDownloadURL, ref } from "firebase/storage";
-
-export const SOCIAL_LINKS_STORAGE_PATH = "settings/social-links.json";
-
 export const DEFAULT_SOCIAL_LINKS = {
   instagram:
     "https://www.instagram.com/am.sanjayyyy?igsh=MWlvdzZ3MnN3ZDBwaQ%3D%3D&utm_source=qr",
@@ -31,18 +27,9 @@ export function validateSocialLinks(links) {
   return validated;
 }
 
-export async function loadSocialLinks(storage) {
-  let url;
-  try {
-    url = await getDownloadURL(ref(storage, SOCIAL_LINKS_STORAGE_PATH));
-  } catch (error) {
-    if (error.code === "storage/object-not-found") {
-      return DEFAULT_SOCIAL_LINKS;
-    }
-    throw error;
-  }
-
-  const response = await fetch(url);
+export async function loadSocialLinks() {
+  const response = await fetch("/data/social-links.json", { cache: "no-store" });
+  if (response.status === 404) return DEFAULT_SOCIAL_LINKS;
   if (!response.ok) {
     throw new Error(`Could not download social links (HTTP ${response.status}).`);
   }

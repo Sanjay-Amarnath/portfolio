@@ -2,40 +2,21 @@ import { useEffect, useState } from "react";
 import "./profile.scss";
 import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
 import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
-import { getDownloadURL, ref } from "firebase/storage";
-import { getFirebaseServices, isFirebaseConfigured } from "../../firebase";
-import { PROFILE_IMAGE_STORAGE_PATH } from "../../firebase";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
 import ParticleTextCanvas from "../animations/ParticleTextCanvas";
 
 const Profile = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
-  const [profileImageUrl, setProfileImageUrl] = useState("/images/sanjay.png");
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return undefined;
-
     let isMounted = true;
-    try {
-      const { storage } = getFirebaseServices();
-      getDownloadURL(ref(storage, PROFILE_IMAGE_STORAGE_PATH))
-        .then((url) => {
-          if (isMounted) setProfileImageUrl(url);
-        })
-        .catch((error) => {
-          if (error.code !== "storage/object-not-found")
-            console.error("Could not load portfolio profile image:", error);
-        });
-      loadSocialLinks(storage)
-        .then((links) => {
-          if (isMounted) setSocialLinks(links);
-        })
-        .catch((error) => {
-          console.error("Could not load portfolio social links:", error);
-        });
-    } catch (error) {
-      console.error("Could not initialize Firebase for social links:", error);
-    }
+    loadSocialLinks()
+      .then((links) => {
+        if (isMounted) setSocialLinks(links);
+      })
+      .catch((error) => {
+        console.error("Could not load portfolio social links:", error);
+      });
 
     return () => {
       isMounted = false;
@@ -126,7 +107,7 @@ const Profile = () => {
         <ParticleTextCanvas text="MAKE WAVES" />
         <div className="portrait-card">
           <span className="portrait-card-tag">THE HUMAN BEHIND THE PIXELS</span>
-          <img src={profileImageUrl} alt="Portrait of Sanjay Amarnath" />
+          <img src="/images/sanjay.png" alt="Portrait of Sanjay Amarnath" />
           <div className="portrait-card-caption">
             <span>SA / 01</span>
             <span>BUILD WITH INTENT</span>
