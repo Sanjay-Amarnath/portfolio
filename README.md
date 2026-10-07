@@ -74,3 +74,26 @@ For security, the API checks the verified Firebase email, limits the accepted
 asset names, file types, and sizes, and never returns the GitHub token to the
 browser. The portfolio repository is public, so uploaded assets and social
 links are public too.
+
+## Browser-only resume builder
+
+Visit `/resume` to extract text from a PDF, DOCX, or TXT resume in the browser,
+or provide a JPG, PNG, or WEBP resume image for Gemini to read. Use **Extract
+details with Gemini** to populate the resume form from the uploaded file; a job
+description is not required for extraction. Add a target job description to
+tailor the resume and compare keywords. Files are never uploaded to the
+portfolio server. Choosing a Gemini action
+sends the resume text or selected image, job description, and entered candidate
+details directly to Google using the visitor's own API key. Image contents are
+not sent until the user chooses Generate.
+Create a key in [Google AI Studio](https://aistudio.google.com/app/apikey). The
+key is held in page memory only. Google API quotas and terms apply. Generated
+resumes must be reviewed for accuracy; AI output and keyword alignment are not
+guarantees of ATS results. Skills and keywords are only added when supported
+by the supplied resume or candidate details; the builder does not invent
+qualifications to increase its ATS estimate.
+
+Draft persistence is opt-in and uses this browser's local storage. It can
+include extracted resume text and the job description; it is not sent to this
+portfolio. The original uploaded file is not stored. Resume PDF export creates
+and downloads an A4 PDF directly in the browser.

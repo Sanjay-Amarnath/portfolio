@@ -61,6 +61,9 @@ const Navbar = ({ theme, onToggleTheme }) => {
           >
             <span>03</span> Signal
           </a>
+          <a className="topics" href="/resume">
+            <span>04</span> Resume lab
+          </a>
         </div>
         <div className="nav-actions">
           <button
