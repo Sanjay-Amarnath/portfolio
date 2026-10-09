@@ -95,3 +95,16 @@ export const projects = [
 export function getProjectBySlug(slug) {
   return projects.find((project) => project.slug === slug);
 }
+
+export async function loadProjects() {
+  const response = await fetch("/data/projects.json", { cache: "no-store" });
+  if (response.status === 404) return projects;
+  if (!response.ok) {
+    throw new Error(`Could not download portfolio projects (HTTP ${response.status}).`);
+  }
+  const savedProjects = await response.json();
+  if (!Array.isArray(savedProjects) || savedProjects.length < 1 || savedProjects.length > 100) {
+    throw new Error("The published portfolio projects file is invalid.");
+  }
+  return savedProjects;
+}

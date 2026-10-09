@@ -37,48 +37,28 @@ Builds the app for production to the `build` folder.
 
 It correctly bundles React in production mode and optimizes the build for the best performance. The build is minified and the filenames include the hashes.
 
-## Admin resume uploads
+## Portfolio admin
 
-The admin page at `/admin` uses Firebase Google sign-in to authenticate
-`sanjaymrnth@gmail.com`. Resume, profile image, and social-link changes are
-committed to this public GitHub repository instead of Firebase Storage:
+Visit `/admin` to replace the resume PDF and profile image (any image format
+the browser can decode; images are converted to PNG), edit social links,
+and add or edit portfolio case studies. Project updates are reflected on the
+home page and `/projects` after deployment. A successful save commits to the
+repository; Vercel publishes it when the resulting deployment finishes.
 
-- `public/data/Resume.pdf` — PDF, up to 4 MB
-- `public/images/sanjay.png` — PNG, up to 4 MB
-- `public/data/social-links.json` — public profile URLs
+Configure Google sign-in in Firebase and add these web-app values to the
+frontend environment (for local development, use an untracked `.env` file):
+`REACT_APP_FIREBASE_API_KEY`, `REACT_APP_FIREBASE_AUTH_DOMAIN`,
+`REACT_APP_FIREBASE_PROJECT_ID`, and `REACT_APP_FIREBASE_APP_ID`.
+`REACT_APP_FIREBASE_MESSAGING_SENDER_ID` is optional. Enable the Google
+provider and authorize the local/deployed domains in Firebase Authentication.
+Only the verified `sanjaymrnth@gmail.com` account can save changes.
 
-The Vercel API verifies the Firebase ID token with Firebase Authentication and
-then uses a repository-scoped GitHub token to update only these fixed files.
-Each update creates a GitHub commit, which triggers the connected Vercel
-deployment. The live site reflects the change when that deployment completes.
-Firebase Storage is not used, so no Storage bucket or Blaze upgrade is needed.
-
-### One-time setup
-
-1. In Firebase Authentication, enable Google sign-in and add the local and
-   deployed portfolio domains to **Authorized domains**. Firebase Auth remains
-   the only Firebase service used by the admin flow.
-2. Create a GitHub **fine-grained personal access token** for only this
-   repository. Grant **Contents: Read and write** (Metadata read is included).
-   Never put this token in React code or commit it.
-3. In Vercel project settings, add these environment variables to Development,
-   Preview, and Production as needed:
-   - `GITHUB_TOKEN` — the fine-grained token
-   - `GITHUB_REPOSITORY` — `Sanjay-Amarnath/portfolio`
-   - `GITHUB_BRANCH` — `main`
-   - `FIREBASE_API_KEY` — the same Firebase Web API key as
-     `REACT_APP_FIREBASE_API_KEY`
-   - The existing `REACT_APP_FIREBASE_*` web-app configuration values
-4. Copy `.env.example` to `.env.local` and fill in the same values locally.
-   Restart the development server after changing environment variables.
-   `npm start` runs Vercel's local server, which serves both the React page
-   and the `api/` functions. On first use, the Vercel CLI may ask you to log
-   in and link the project.
-
-For security, the API checks the verified Firebase email, limits the accepted
-asset names, file types, and sizes, and never returns the GitHub token to the
-browser. The portfolio repository is public, so uploaded assets and social
-links are public too.
+The Vercel API also needs `GITHUB_TOKEN` configured as a server-only
+environment variable with Contents write access to the portfolio repository.
+`GITHUB_REPOSITORY` defaults to `Sanjay-Amarnath/portfolio`; `GITHUB_BRANCH`
+defaults to `main`. The API checks the Firebase ID token again before writing,
+so do not expose the GitHub token in a `REACT_APP_*` variable or remove the
+server-side authorization. The repository and its published assets are public.
 
 ## Browser-only resume builder
 
@@ -109,4 +89,6 @@ The portfolio's selected work section links to individual case studies under
 `/projects/<slug>`. These include the Reltime fintech products, Make My Slot's
 booking flow, Hydrafacial's content and search experience, and the independent
 Resume Lab. Project descriptions are based on the supplied resume; no
-unprovided project metrics or client URLs are claimed.
+unprovided project metrics or client URLs are claimed. Projects are loaded
+from `public/data/projects.json`; authorized changes made in `/admin` update
+that file and appear after deployment.

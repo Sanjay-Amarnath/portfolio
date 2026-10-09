@@ -1,4 +1,5 @@
-import { projects } from "../../data/projects";
+import { useEffect, useState } from "react";
+import { loadProjects, projects as defaultProjects } from "../../data/projects";
 import "./projects.scss";
 
 function ProjectArtwork({ project }) {
@@ -26,7 +27,10 @@ function ProjectArtwork({ project }) {
 
 function ProjectCard({ project, index }) {
   return (
-    <article className="portfolio-project-card reveal-up">
+    <article
+      className="portfolio-project-card reveal-up"
+      aria-label={`${project.name} project`}
+    >
       <a
         className="portfolio-project-link"
         href={`/projects/${project.slug}`}
@@ -50,6 +54,43 @@ function ProjectCard({ project, index }) {
 }
 
 function Projects() {
+  const [projects, setProjects] = useState(defaultProjects);
+
+  useEffect(() => {
+    let isMounted = true;
+    loadProjects()
+      .then((loadedProjects) => {
+        if (isMounted) setProjects(loadedProjects);
+      })
+      .catch((error) => {
+        console.error("Could not load portfolio projects:", error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const pendingCards = document.querySelectorAll(
+      "#projects .portfolio-project-card.reveal-up:not(.is-visible)",
+    );
+    if (!("IntersectionObserver" in window)) {
+      pendingCards.forEach((card) => card.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    pendingCards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [projects]);
+
   return (
     <section className="portfolio-projects" id="projects" aria-labelledby="projects-title">
       <div className="portfolio-projects-heading reveal-up">

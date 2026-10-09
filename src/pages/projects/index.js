@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { getProjectBySlug, projects } from "../../data/projects";
+import { useEffect, useState } from "react";
+import { loadProjects, projects as defaultProjects } from "../../data/projects";
 import "./projects-page.scss";
 
 function ProjectHeader() {
@@ -26,7 +26,7 @@ function ProjectArtwork({ project }) {
   );
 }
 
-export function ProjectsIndex() {
+export function ProjectsIndex({ projects = defaultProjects }) {
   return (
     <main className="project-page-shell">
       <ProjectHeader />
@@ -71,8 +71,8 @@ function ProjectFooter() {
   );
 }
 
-export function ProjectDetail({ slug }) {
-  const project = getProjectBySlug(slug);
+export function ProjectDetail({ slug, projects = defaultProjects }) {
+  const project = projects.find((item) => item.slug === slug);
   if (!project) {
     return (
       <main className="project-page-shell project-not-found">
@@ -156,7 +156,22 @@ export function ProjectDetail({ slug }) {
 
 function ProjectsPage() {
   const slug = window.location.pathname.replace(/\/+$/, "").split("/").pop();
-  const project = slug === "projects" ? null : getProjectBySlug(slug);
+  const [projects, setProjects] = useState(defaultProjects);
+  const project = slug === "projects" ? null : projects.find((item) => item.slug === slug);
+
+  useEffect(() => {
+    let isMounted = true;
+    loadProjects()
+      .then((loadedProjects) => {
+        if (isMounted) setProjects(loadedProjects);
+      })
+      .catch((error) => {
+        console.error("Could not load portfolio projects:", error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -179,7 +194,9 @@ function ProjectsPage() {
     };
   }, [project, slug]);
 
-  return slug === "projects" ? <ProjectsIndex /> : <ProjectDetail slug={slug} />;
+  return slug === "projects"
+    ? <ProjectsIndex projects={projects} />
+    : <ProjectDetail slug={slug} projects={projects} />;
 }
 
 export default ProjectsPage;
