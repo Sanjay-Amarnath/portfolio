@@ -5,7 +5,7 @@ import ResumeBuilder from "./pages/resume-builder";
 import ProjectsPage from "./pages/projects";
 import ".././src/scss/_colors.scss";
 import ".././src/scss/_mixins.scss";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 function App() {
   const path = window.location.pathname.replace(/\/+$/, "");
