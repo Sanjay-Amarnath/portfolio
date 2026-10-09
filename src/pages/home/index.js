@@ -5,6 +5,7 @@ import Footer from "../../component/footer";
 import Navbar from "../../component/navbar";
 import Profile from "../../component/profile";
 import Skills from "../../component/skills/skills";
+import Projects from "../../component/projects/Projects";
 import LoadingScreen from "../../component/animations/LoadingScreen";
 import CompassCursor from "../../component/animations/CompassCursor";
 
@@ -84,6 +85,7 @@ const Home = () => {
         <Profile />
         <Count />
         <Skills />
+        <Projects />
         <Contact />
       </main>
       <Footer />

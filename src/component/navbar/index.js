@@ -7,7 +7,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
 
   useEffect(() => {
     if (!("IntersectionObserver" in window)) return undefined;
-    const sections = ["about", "experience", "expertise", "contact"]
+    const sections = ["about", "experience", "projects", "expertise", "contact"]
       .map((id) => document.getElementById(id))
       .filter(Boolean);
     const observer = new IntersectionObserver(
@@ -56,13 +56,20 @@ const Navbar = ({ theme, onToggleTheme }) => {
           </a>
           <a
             className="topics"
+            href="#projects"
+            aria-current={activeSection === "projects" ? "location" : undefined}
+          >
+            <span>03</span> Projects
+          </a>
+          <a
+            className="topics"
             href="#contact"
             aria-current={activeSection === "contact" ? "location" : undefined}
           >
-            <span>03</span> Signal
+            <span>04</span> Signal
           </a>
           <a className="topics" href="/resume">
-            <span>04</span> Resume lab
+            <span>05</span> Resume lab
           </a>
         </div>
         <div className="nav-actions">

@@ -16,7 +16,14 @@ In the project directory, you can run:
 
 ### `npm start`
 
-Runs the app in the development mode. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Runs the app and its Vercel API routes in development mode. Open the URL
+printed in the terminal to view it in your browser. This is required to test
+admin uploads locally because the upload endpoint is a Vercel function.
+
+### `npm run start:cra`
+
+Runs only the Create React App frontend. Admin asset uploads are unavailable
+when using this command because it does not serve the `/api/` functions.
 
 The page will reload when you make changes. You may also see any lint errors in the console.
 
@@ -64,11 +71,9 @@ Firebase Storage is not used, so no Storage bucket or Blaze upgrade is needed.
    - The existing `REACT_APP_FIREBASE_*` web-app configuration values
 4. Copy `.env.example` to `.env.local` and fill in the same values locally.
    Restart the development server after changing environment variables.
-   For local upload testing, stop `npm start` and run `npm run dev:vercel`.
-   This starts Vercel's local server, which serves both the React page and the
-   `api/` functions. On first use, the Vercel CLI may ask you to log in and link
-   the project. `npm start` alone serves only the React page, so `/api/*`
-   requests return 404.
+   `npm start` runs Vercel's local server, which serves both the React page
+   and the `api/` functions. On first use, the Vercel CLI may ask you to log
+   in and link the project.
 
 For security, the API checks the verified Firebase email, limits the accepted
 asset names, file types, and sizes, and never returns the GitHub token to the
@@ -97,3 +102,11 @@ Draft persistence is opt-in and uses this browser's local storage. It can
 include extracted resume text and the job description; it is not sent to this
 portfolio. The original uploaded file is not stored. Resume PDF export creates
 and downloads an A4 PDF directly in the browser.
+
+## Project case studies
+
+The portfolio's selected work section links to individual case studies under
+`/projects/<slug>`. These include the Reltime fintech products, Make My Slot's
+booking flow, Hydrafacial's content and search experience, and the independent
+Resume Lab. Project descriptions are based on the supplied resume; no
+unprovided project metrics or client URLs are claimed.

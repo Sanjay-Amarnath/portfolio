@@ -20,7 +20,8 @@
     "web-vitals": "^3.0.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "npm run dev:vercel",
+    "start:cra": "react-scripts start",
     "dev:vercel": "npx vercel dev",
     "build": "react-scripts build",
     "test": "react-scripts test",

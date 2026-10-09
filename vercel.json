@@ -7,6 +7,14 @@
     {
       "source": "/resume",
       "destination": "/index.html"
+    },
+    {
+      "source": "/projects",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/projects/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

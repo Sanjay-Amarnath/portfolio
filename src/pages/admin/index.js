@@ -192,7 +192,7 @@ const Admin = () => {
             if (request.status === 404) {
               reject(
                 new Error(
-                  "The upload API was not found. Stop npm start and run npm run dev:vercel to start the site with its API routes.",
+                  "The upload API was not found. Start the site with npm start or npm run dev:vercel so its API routes are available.",
                 ),
               );
               return;
