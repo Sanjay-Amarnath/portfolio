@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef } from "react";
 
 const ParticleTextCanvas = ({ text = "MAKE WAVES" }) => {

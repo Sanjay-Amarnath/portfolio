@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { loadProjects, projects as defaultProjects } from "../../data/projects";
 import "./projects-page.scss";
@@ -155,7 +157,9 @@ export function ProjectDetail({ slug, projects = defaultProjects }) {
 }
 
 function ProjectsPage() {
-  const slug = window.location.pathname.replace(/\/+$/, "").split("/").pop();
+  const slug = typeof window !== "undefined"
+    ? window.location.pathname.replace(/\/+$/, "").split("/").pop()
+    : "projects";
   const [projects, setProjects] = useState(defaultProjects);
   const project = slug === "projects" ? null : projects.find((item) => item.slug === slug);
 

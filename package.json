@@ -5,28 +5,34 @@
     "@emotion/styled": "^11.10.5",
     "@formspree/react": "^2.5.1",
     "@mui/material": "^5.11.7",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "@vercel/analytics": "^1.5.0",
     "firebase": "^12.19.0",
+    "framer-motion": "^14.0.0",
     "jspdf": "^4.2.1",
     "mammoth": "^1.13.0",
+    "next": "^16.4.0",
     "pdfjs-dist": "^4.10.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "react-visibility-sensor": "^5.1.1",
     "sass": "^1.58.0",
+    "three": "^0.186.1",
     "web-vitals": "^3.0.4"
   },
   "scripts": {
-    "start": "npm run dev:vercel",
-    "start:cra": "react-scripts start",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "dev:vercel": "npx vercel dev",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start:cra": "react-scripts start",
+    "build:cra": "react-scripts build",
+    "test": "react-scripts test"
   },
   "eslintConfig": {
     "extends": [
@@ -50,6 +56,7 @@
     ]
   },
   "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
     "typescript": "^4.9.5"
   }
 }

@@ -433,6 +433,7 @@ ${jobDescription || "(No target job description provided. Extract and organize t
 }
 
 export function getDraftFromStorage() {
+  if (typeof window === "undefined") return null;
   try {
     const value = window.localStorage.getItem(RESUME_DRAFT_KEY);
     if (!value) return null;

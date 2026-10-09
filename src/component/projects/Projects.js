@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { loadProjects, projects as defaultProjects } from "../../data/projects";
 import "./projects.scss";

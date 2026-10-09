@@ -1,7 +1,7 @@
 import "./skills.scss";
-import { ReactComponent as Diamond } from "../../assets/svg/diamond-outline.svg";
-import { ReactComponent as Pulse } from "../../assets/svg/pulse-outline.svg";
-import { ReactComponent as School } from "../../assets/svg/school-outline.svg";
+import Diamond from "../../assets/svg/diamond-outline.svg";
+import Pulse from "../../assets/svg/pulse-outline.svg";
+import School from "../../assets/svg/school-outline.svg";
 
 const expertise = [
   {

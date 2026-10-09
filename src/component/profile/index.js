@@ -1,9 +1,16 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import "./profile.scss";
-import { ReactComponent as Instagram } from "../../assets/svg/instagram.svg";
-import { ReactComponent as LinkedIn } from "../../assets/svg/linkedin.svg";
+import Instagram from "../../assets/svg/instagram.svg";
+import LinkedIn from "../../assets/svg/linkedin.svg";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
 import ParticleTextCanvas from "../animations/ParticleTextCanvas";
+import dynamic from "next/dynamic";
+
+const TechNetwork3D = dynamic(() => import("../3d/TechNetwork3D"), {
+  ssr: false,
+});
 
 const Profile = () => {
   const [socialLinks, setSocialLinks] = useState(DEFAULT_SOCIAL_LINKS);
@@ -93,6 +100,7 @@ const Profile = () => {
       </div>
 
       <div className="hero-illustration">
+        <TechNetwork3D />
         <div className="chart-ring chart-ring-outer" aria-hidden="true" />
         <div className="chart-ring chart-ring-inner" aria-hidden="true" />
         <div className="chart-cross chart-cross-one" aria-hidden="true" />

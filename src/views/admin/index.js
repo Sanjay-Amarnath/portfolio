@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
@@ -34,6 +36,7 @@ const EMPTY_PROJECT = {
 };
 
 const localUploadTestMode = process.env.NODE_ENV === "development"
+  && typeof window !== "undefined"
   && ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
 function getAuthErrorMessage(error) {

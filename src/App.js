@@ -1,8 +1,8 @@
 import "./App.css";
-import Home from "./pages/home";
-import Admin from "./pages/admin";
-import ResumeBuilder from "./pages/resume-builder";
-import ProjectsPage from "./pages/projects";
+import Home from "./views/home";
+import Admin from "./views/admin";
+import ResumeBuilder from "./views/resume-builder";
+import ProjectsPage from "./views/projects";
 import ".././src/scss/_colors.scss";
 import ".././src/scss/_mixins.scss";
 import { Analytics } from "@vercel/analytics/react";
