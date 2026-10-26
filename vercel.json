@@ -1,20 +1,4 @@
 {
-  "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/resume",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/projects",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/projects/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "framework": "nextjs",
+  "installCommand": "npm install --legacy-peer-deps"
 }

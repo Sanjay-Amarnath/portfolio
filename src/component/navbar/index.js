@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import "./navbar.scss";
 
 const Navbar = ({ theme, onToggleTheme }) => {
   const [activeSection, setActiveSection] = useState("about");
+  const { isAdmin, loading } = useAdminAuth();
   const resumeUrl = "/data/Resume.pdf";
 
   useEffect(() => {
@@ -27,6 +29,18 @@ const Navbar = ({ theme, onToggleTheme }) => {
     return () => observer.disconnect();
   }, []);
 
+  const navItems = [
+    { href: "#about", label: "Crew", num: "01", section: "about" },
+    { href: "#expertise", label: "Field notes", num: "02", section: "expertise" },
+    { href: "#projects", label: "Projects", num: "03", section: "projects" },
+    { href: "#contact", label: "Signal", num: "04", section: "contact" },
+    { href: "/resume", label: "Resume lab", num: "05" },
+  ];
+
+  if (isAdmin) {
+    navItems.push({ href: "/jobs", label: "Jobs board", num: "06" });
+  }
+
   return (
     <header className="navbar-wrap" id="top">
       <nav className="navbar container" aria-label="Main navigation">
@@ -40,39 +54,16 @@ const Navbar = ({ theme, onToggleTheme }) => {
           </span>
         </a>
         <div className="pages-div">
-          <a
-            className="topics"
-            href="#about"
-            aria-current={activeSection === "about" ? "location" : undefined}
-          >
-            <span>01</span> Crew
-          </a>
-          <a
-            className="topics"
-            href="#expertise"
-            aria-current={
-              activeSection === "expertise" ? "location" : undefined
-            }
-          >
-            <span>02</span> Field notes
-          </a>
-          <a
-            className="topics"
-            href="#projects"
-            aria-current={activeSection === "projects" ? "location" : undefined}
-          >
-            <span>03</span> Projects
-          </a>
-          <a
-            className="topics"
-            href="#contact"
-            aria-current={activeSection === "contact" ? "location" : undefined}
-          >
-            <span>04</span> Signal
-          </a>
-          <a className="topics" href="/resume">
-            <span>05</span> Resume lab
-          </a>
+          {navItems.map((item) => (
+            <a
+              key={item.href}
+              className="topics"
+              href={item.href}
+              aria-current={item.section && activeSection === item.section ? "location" : undefined}
+            >
+              <span>{item.num}</span> {item.label}
+            </a>
+          ))}
         </div>
         <div className="nav-actions">
           <button

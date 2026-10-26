@@ -32,3 +32,5 @@ yarn-error.log*
 # My Skills: begin
 # CLAUDE.md
 # My Skills: end
+/test-results
+/playwright-report

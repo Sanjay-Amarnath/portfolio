@@ -1,9 +1,7 @@
 "use client";
 
 import "./contact.scss";
-import Phone from "../../assets/svg/mobile.svg";
-import Location from "../../assets/svg/location.svg";
-import Mail from "../../assets/svg/mail.svg";
+import { Phone, Location, Mail } from "../../assets/svg/icons";
 import { Button } from "@mui/material";
 import { ValidationError, useForm } from "@formspree/react";
 const Contact = () => {

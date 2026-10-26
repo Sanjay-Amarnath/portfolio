@@ -38,12 +38,16 @@ export default function ResumeBuilder() {
   const [editorSection, setEditorSection] = useState("personal"); // "personal" | "summary" | "skills" | "experience" | "education" | "projects" | "extras"
   const [mobileView, setMobileView] = useState("editor"); // "editor" | "preview"
   const [scale, setScale] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
   const [jobDescription, setJobDescription] = useState("");
   const [markdownText, setMarkdownText] = useState("");
   const [notification, setNotification] = useState("");
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [skillsDraft, setSkillsDraft] = useState({});
+  const [certsDraft, setCertsDraft] = useState(null);
+  const [langsDraft, setLangsDraft] = useState(null);
   const fileInputRef = useRef(null);
 
   // Set document title and mark hydration
@@ -185,6 +189,49 @@ export default function ResumeBuilder() {
     return getAtsAnalysis(jobDescription, resume);
   }, [jobDescription, resume]);
 
+  // Section Spacer & Page Break toolbar helper
+  const renderSectionSpacerToolbar = (secKey, secLabel) => (
+    <div className="section-spacer-toolbar" key={`spacer-bar-${secKey}`}>
+      <button
+        type="button"
+        className={`break-page-toggle ${resume.sectionBreaks?.[secKey] ? "is-active" : ""}`}
+        onClick={() => {
+          const current = Boolean(resume.sectionBreaks?.[secKey]);
+          updateResume((r) => ({
+            ...r,
+            sectionBreaks: { ...r.sectionBreaks, [secKey]: !current },
+          }));
+          showNotice(
+            !current
+              ? `Pushed ${secLabel} to start cleanly on next page!`
+              : `Removed page break for ${secLabel}`
+          );
+        }}
+        title="Force this section to start on the next A4 sheet"
+      >
+        <span>{resume.sectionBreaks?.[secKey] ? "✓ Starts on Next Page" : "📄 Break to Next Page"}</span>
+      </button>
+      <div className="section-spacer-group">
+        <label>Top Spacing:</label>
+        <input
+          type="range"
+          min={0}
+          max={120}
+          step={4}
+          value={resume.sectionSpacers?.[secKey] || 0}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            updateResume((r) => ({
+              ...r,
+              sectionSpacers: { ...r.sectionSpacers, [secKey]: val },
+            }));
+          }}
+        />
+        <span>{resume.sectionSpacers?.[secKey] || 0}px</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="portfolio-shell resume-studio-shell" data-theme={theme}>
       <div className="resume-builder-workspace" data-hydrated={isHydrated ? "true" : "false"}>
@@ -324,12 +371,22 @@ export default function ResumeBuilder() {
 
             <button
               type="button"
-              className="primary-action-btn"
+              className="secondary-btn download-pdf-btn"
+              onClick={handleDownloadPdf}
+              title="Download standalone PDF document"
+              disabled={isExporting}
+            >
+              <span>{isExporting ? "Generating..." : "Download PDF"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="primary-action-btn print-save-btn"
               onClick={handlePrint}
               title="Print or Save as PDF via browser"
             >
-              <span>Print / PDF</span>
-              <span aria-hidden="true">↓</span>
+              <span>Print / Save PDF</span>
+              <span aria-hidden="true">🖨️</span>
             </button>
           </div>
         </header>
@@ -625,6 +682,7 @@ export default function ResumeBuilder() {
                       ✨ Polish Summary
                     </button>
                   </div>
+                  {renderSectionSpacerToolbar("summary", "Summary")}
                   <textarea
                     rows={6}
                     value={resume.summary || ""}
@@ -664,6 +722,7 @@ export default function ResumeBuilder() {
                       + Add Role
                     </button>
                   </div>
+                  {renderSectionSpacerToolbar("experience", "Career History")}
 
                   <div className="entries-list">
                     {(resume.experience || []).map((exp, expIdx) => (
@@ -820,27 +879,42 @@ export default function ResumeBuilder() {
                   <p className="card-subtitle">
                     Enter technical skills separated by commas or add individual tags.
                   </p>
+                  {renderSectionSpacerToolbar("skills", "Technical Skills")}
                   <div className="skills-editor-grid">
-                    {Object.entries(resume.skills || {}).map(([category, list]) => (
-                      <div key={category} className="skill-cat-row">
-                        <label className="cat-label">
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                        </label>
-                        <input
-                          type="text"
-                          value={(list || []).join(", ")}
-                          onChange={(e) => {
-                            const updatedSkills = { ...resume.skills };
-                            updatedSkills[category] = e.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean);
-                            updateResume({ skills: updatedSkills });
-                          }}
-                          placeholder="e.g. React, Next.js, TypeScript"
-                        />
-                      </div>
-                    ))}
+                    {Object.entries(resume.skills || {}).map(([category, list]) => {
+                      const displayVal = skillsDraft[category] !== undefined
+                        ? skillsDraft[category]
+                        : (list || []).join(", ");
+                      return (
+                        <div key={category} className="skill-cat-row">
+                          <label className="cat-label">
+                            {category.charAt(0).toUpperCase() + category.slice(1)}
+                          </label>
+                          <input
+                            type="text"
+                            value={displayVal}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              setSkillsDraft((prev) => ({ ...prev, [category]: raw }));
+                              const updatedSkills = { ...resume.skills };
+                              updatedSkills[category] = raw
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter(Boolean);
+                              updateResume({ skills: updatedSkills });
+                            }}
+                            onBlur={() => {
+                              setSkillsDraft((prev) => {
+                                const next = { ...prev };
+                                delete next[category];
+                                return next;
+                              });
+                            }}
+                            placeholder="e.g. React, Next.js, TypeScript"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -874,6 +948,7 @@ export default function ResumeBuilder() {
                       + Add Degree
                     </button>
                   </div>
+                  {renderSectionSpacerToolbar("education", "Education")}
                   <div className="entries-list">
                     {(resume.education || []).map((edu, eduIdx) => (
                       <div key={eduIdx} className="entry-card">
@@ -977,6 +1052,7 @@ export default function ResumeBuilder() {
                       + Add Project
                     </button>
                   </div>
+                  {renderSectionSpacerToolbar("projects", "Projects")}
                   <div className="entries-list">
                     {(resume.projects || []).map((proj, pIdx) => (
                       <div key={pIdx} className="entry-card">
@@ -1057,6 +1133,62 @@ export default function ResumeBuilder() {
                             placeholder="React, Next.js, Three.js, GSAP"
                           />
                         </div>
+
+                        {/* Project Highlights / Bullets */}
+                        <div className="bullets-section">
+                          <div className="bullets-header">
+                            <label>Key Accomplishments / Highlights</label>
+                            <button
+                              type="button"
+                              className="add-bullet-btn"
+                              onClick={() => {
+                                const updated = [...resume.projects];
+                                updated[pIdx].bullets = [...(updated[pIdx].bullets || []), ""];
+                                updateResume({ projects: updated });
+                              }}
+                            >
+                              + Add Highlight
+                            </button>
+                          </div>
+                          {(proj.bullets || []).map((bullet, bIdx) => (
+                            <div key={bIdx} className="bullet-row">
+                              <span className="bullet-dot">•</span>
+                              <input
+                                type="text"
+                                value={bullet}
+                                onChange={(e) => {
+                                  const updated = [...resume.projects];
+                                  updated[pIdx].bullets[bIdx] = e.target.value;
+                                  updateResume({ projects: updated });
+                                }}
+                                placeholder="Key achievement or metric for this build..."
+                              />
+                              <button
+                                type="button"
+                                className="polish-chip-btn"
+                                onClick={() => {
+                                  const updated = [...resume.projects];
+                                  updated[pIdx].bullets[bIdx] = polishBullet(bullet);
+                                  updateResume({ projects: updated });
+                                  showNotice("Project highlight polished with action verbs!");
+                                }}
+                              >
+                                ✨ Polish
+                              </button>
+                              <button
+                                type="button"
+                                className="remove-bullet-btn"
+                                onClick={() => {
+                                  const updated = [...resume.projects];
+                                  updated[pIdx].bullets = updated[pIdx].bullets.filter((_, i) => i !== bIdx);
+                                  updateResume({ projects: updated });
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1067,17 +1199,25 @@ export default function ResumeBuilder() {
               {editorSection === "extras" && (
                 <div className="editor-card">
                   <h3 className="card-title">Certifications & Languages</h3>
+                  {renderSectionSpacerToolbar("extras", "Certifications & Languages")}
                   <div className="input-group full-width">
                     <label>Certifications (one per line)</label>
                     <textarea
                       rows={4}
-                      value={(resume.certifications || [])
-                        .map((c) => (typeof c === "string" ? c : `${c.name} (${c.issuer}, ${c.date})`))
-                        .join("\n")}
+                      value={
+                        certsDraft !== null
+                          ? certsDraft
+                          : (resume.certifications || [])
+                              .map((c) => (typeof c === "string" ? c : `${c.name} (${c.issuer}, ${c.date})`))
+                              .join("\n")
+                      }
                       onChange={(e) => {
-                        const list = e.target.value.split("\n").filter((s) => s.trim());
+                        const raw = e.target.value;
+                        setCertsDraft(raw);
+                        const list = raw.split("\n").filter((s) => s.trim());
                         updateResume({ certifications: list });
                       }}
+                      onBlur={() => setCertsDraft(null)}
                       placeholder="Meta Certified Frontend Developer (Meta, 2022)"
                     />
                   </div>
@@ -1085,13 +1225,20 @@ export default function ResumeBuilder() {
                     <label>Languages (one per line)</label>
                     <textarea
                       rows={3}
-                      value={(resume.languages || [])
-                        .map((l) => (typeof l === "string" ? l : `${l.name} (${l.level})`))
-                        .join("\n")}
+                      value={
+                        langsDraft !== null
+                          ? langsDraft
+                          : (resume.languages || [])
+                              .map((l) => (typeof l === "string" ? l : `${l.name} (${l.level})`))
+                              .join("\n")
+                      }
                       onChange={(e) => {
-                        const list = e.target.value.split("\n").filter((s) => s.trim());
+                        const raw = e.target.value;
+                        setLangsDraft(raw);
+                        const list = raw.split("\n").filter((s) => s.trim());
                         updateResume({ languages: list });
                       }}
+                      onBlur={() => setLangsDraft(null)}
                       placeholder="English (Fluent)\nTamil (Native)"
                     />
                   </div>
@@ -1220,7 +1367,7 @@ export default function ResumeBuilder() {
 
                   <div className="slider-group">
                     <div className="slider-label-row">
-                      <label>Page Margins</label>
+                      <label>Page Margins (Sides)</label>
                       <span>{resume.pagePadding || 28}px</span>
                     </div>
                     <input
@@ -1230,6 +1377,43 @@ export default function ResumeBuilder() {
                       step={2}
                       value={resume.pagePadding || 28}
                       onChange={(e) => updateResume({ pagePadding: parseInt(e.target.value, 10) })}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Header Space (Top Margin)</label>
+                      <span>{resume.headerSpacing || 36}px</span>
+                    </div>
+                    <input
+                      id="ctrl-header-margin"
+                      type="range"
+                      min={16}
+                      max={80}
+                      step={4}
+                      value={resume.headerSpacing || 36}
+                      onChange={(e) => updateResume({ headerSpacing: parseInt(e.target.value, 10) })}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Footer Space (Bottom Margin)</label>
+                      <span>{resume.footerSpacing || resume.bottomMargin || 36}px</span>
+                    </div>
+                    <input
+                      id="ctrl-bottom-margin"
+                      type="range"
+                      min={16}
+                      max={80}
+                      step={4}
+                      value={resume.footerSpacing || resume.bottomMargin || 36}
+                      onChange={(e) =>
+                        updateResume({
+                          footerSpacing: parseInt(e.target.value, 10),
+                          bottomMargin: parseInt(e.target.value, 10),
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -1252,6 +1436,69 @@ export default function ResumeBuilder() {
                       <span>{secKey.charAt(0).toUpperCase() + secKey.slice(1)}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Section Order & Reorganizer */}
+              <div className="design-section">
+                <h3 className="design-section-title">Section Ordering</h3>
+                <p className="card-subtitle">Move sections up or down to customize layout hierarchy.</p>
+                <div className="section-order-list">
+                  {(resume.sectionOrder || [
+                    "personal",
+                    "summary",
+                    "skills",
+                    "experience",
+                    "education",
+                    "projects",
+                    "certifications",
+                    "languages",
+                  ])
+                    .filter((s) => s !== "personal")
+                    .map((secKey, idx, arr) => (
+                      <div key={secKey} className="section-order-item">
+                        <span className="sec-order-num">0{idx + 1}</span>
+                        <span className="sec-order-name">
+                          {secKey.charAt(0).toUpperCase() + secKey.slice(1)}
+                        </span>
+                        <div className="sec-order-btns">
+                          <button
+                            type="button"
+                            className="sec-move-btn"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const newOrder = ["personal", ...arr];
+                              const pos = newOrder.indexOf(secKey);
+                              const tmp = newOrder[pos];
+                              newOrder[pos] = newOrder[pos - 1];
+                              newOrder[pos - 1] = tmp;
+                              updateResume({ sectionOrder: newOrder });
+                            }}
+                            title="Move section up"
+                            aria-label={`Move ${secKey} up`}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className="sec-move-btn"
+                            disabled={idx === arr.length - 1}
+                            onClick={() => {
+                              const newOrder = ["personal", ...arr];
+                              const pos = newOrder.indexOf(secKey);
+                              const tmp = newOrder[pos];
+                              newOrder[pos] = newOrder[pos + 1];
+                              newOrder[pos + 1] = tmp;
+                              updateResume({ sectionOrder: newOrder });
+                            }}
+                            title="Move section down"
+                            aria-label={`Move ${secKey} down`}
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -1391,41 +1638,159 @@ export default function ResumeBuilder() {
           <div className="preview-canvas-bar">
             <div className="canvas-status">
               <span className="live-dot" aria-hidden="true" />
-              <span>A4 Live Preview</span>
-              <span className="template-indicator">({TEMPLATES.find((t) => t.id === resume.template)?.name || "Modern"})</span>
+              <span className="canvas-title">A4 Live Preview</span>
+              <span className="template-indicator">
+                {TEMPLATES.find((t) => t.id === resume.template)?.name || "Modern"}
+              </span>
+              <span className={`page-count-badge ${pageCount > 1 ? "is-multi-page" : "is-single-page"}`}>
+                📄 {pageCount} {pageCount === 1 ? "Page" : "Pages"}
+                <small>{pageCount === 1 ? "(Fits A4)" : "(Spills to Page 2)"}</small>
+              </span>
             </div>
 
-            <div className="zoom-controls">
-              <button
-                type="button"
-                className="zoom-btn"
-                onClick={() => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)))}
-                title="Zoom Out"
-              >
-                −
-              </button>
-              <span className="zoom-label">{Math.round(scale * 100)}%</span>
-              <button
-                type="button"
-                className="zoom-btn"
-                onClick={() => setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))}
-                title="Zoom In"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                className="zoom-reset-btn"
-                onClick={() => setScale(1)}
-                title="Reset Zoom"
-              >
-                100%
-              </button>
+            <div className="canvas-actions-right">
+              {/* Header & Footer Spacing Quick Controls */}
+              <div className="canvas-spacing-capsule">
+                <span className="capsule-label">Margins:</span>
+                <button
+                  type="button"
+                  className="spacing-btn"
+                  onClick={() => {
+                    updateResume((r) => ({
+                      ...r,
+                      headerSpacing: Math.min(80, (r.headerSpacing || 36) + 4),
+                    }));
+                    showNotice("Added Header (Top) Space!");
+                  }}
+                  title="Increase Header (Top) Space"
+                >
+                  + Header
+                </button>
+                <button
+                  type="button"
+                  className="spacing-btn"
+                  onClick={() => {
+                    updateResume((r) => ({
+                      ...r,
+                      headerSpacing: Math.max(12, (r.headerSpacing || 36) - 4),
+                    }));
+                    showNotice("Reduced Header (Top) Space!");
+                  }}
+                  title="Decrease Header (Top) Space"
+                >
+                  − Header
+                </button>
+                <span className="spacing-divider">|</span>
+                <button
+                  type="button"
+                  className="spacing-btn"
+                  onClick={() => {
+                    updateResume((r) => ({
+                      ...r,
+                      footerSpacing: Math.min(80, (r.footerSpacing || 36) + 4),
+                      bottomMargin: Math.min(80, (r.footerSpacing || 36) + 4),
+                    }));
+                    showNotice("Added Footer (Bottom) Space!");
+                  }}
+                  title="Increase Footer (Bottom) Space"
+                >
+                  + Footer
+                </button>
+                <button
+                  type="button"
+                  className="spacing-btn"
+                  onClick={() => {
+                    updateResume((r) => ({
+                      ...r,
+                      footerSpacing: Math.max(12, (r.footerSpacing || 36) - 4),
+                      bottomMargin: Math.max(12, (r.footerSpacing || 36) - 4),
+                    }));
+                    showNotice("Reduced Footer (Bottom) Space!");
+                  }}
+                  title="Decrease Footer (Bottom) Space"
+                >
+                  − Footer
+                </button>
+              </div>
+
+              {pageCount > 1 && (
+                <div className="page-jump-group">
+                  {Array.from({ length: pageCount }).map((_, i) => (
+                    <button
+                      key={i + 1}
+                      type="button"
+                      className="page-jump-btn"
+                      onClick={() => {
+                        const viewport = document.querySelector(".preview-scroll-viewport");
+                        if (viewport) {
+                          const pageOffset = i * 1122.5 * scale;
+                          viewport.scrollTo({ top: pageOffset, behavior: "smooth" });
+                        }
+                      }}
+                      title={`Scroll to Page ${i + 1}`}
+                    >
+                      P.{i + 1}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="fit-one-page-btn"
+                    onClick={() => {
+                      updateResume((r) => ({
+                        ...r,
+                        baseFontSize: Math.max(12, (r.baseFontSize || 14) - 0.5),
+                        lineHeight: Math.max(1.3, +((r.lineHeight || 1.5) - 0.08).toFixed(2)),
+                        sectionSpacing: Math.max(10, (r.sectionSpacing || 16) - 2),
+                        pagePadding: Math.max(20, (r.pagePadding || 28) - 2),
+                      }));
+                      showNotice("Adjusted spacing & sizing to fit on fewer pages!");
+                    }}
+                    title="Automatically reduce spacing to fit on 1 page"
+                  >
+                    ⚡ Fit 1-Page
+                  </button>
+                </div>
+              )}
+
+              <div className="zoom-controls">
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={() => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)))}
+                  title="Zoom Out"
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+                <span className="zoom-label">{Math.round(scale * 100)}%</span>
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={() => setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))}
+                  title="Zoom In"
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="zoom-reset-btn"
+                  onClick={() => setScale(1)}
+                  title="Reset Zoom to 100%"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="preview-scroll-viewport">
-            <ResumeDocument resume={resume} scale={scale} />
+            <ResumeDocument
+              resume={resume}
+              scale={scale}
+              onPageCountChange={(count) => setPageCount(count)}
+            />
+            <div className="canvas-bottom-cushion" aria-hidden="true" />
           </div>
         </section>
       </main>

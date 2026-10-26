@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import "./profile.scss";
-import Instagram from "../../assets/svg/instagram.svg";
-import LinkedIn from "../../assets/svg/linkedin.svg";
+import { Instagram, LinkedIn } from "../../assets/svg/icons";
 import { DEFAULT_SOCIAL_LINKS, loadSocialLinks } from "../../socialLinks";
 import ParticleTextCanvas from "../animations/ParticleTextCanvas";
 import dynamic from "next/dynamic";

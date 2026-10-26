@@ -1,8 +1,18 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FONT_FAMILIES } from "./constants";
 
-export default function ResumeDocument({ resume, isPrintPreview = false, scale = 1 }) {
+export default function ResumeDocument({
+  resume,
+  isPrintPreview = false,
+  scale = 1,
+  onPageCountChange,
+}) {
+  const paperRef = useRef(null);
+  const measureRef = useRef(null);
+  const [pageCount, setPageCount] = useState(1);
+  const [a4Px, setA4Px] = useState(1122.5);
+
   const p = resume?.personal || {};
   const template = resume?.template || "modern";
   const themeColor = resume?.themeColor || "#0db760";
@@ -12,6 +22,44 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
   const pagePadding = resume?.pagePadding || 28;
   const fontFamilyEntry = FONT_FAMILIES.find((f) => f.id === resume?.fontFamily) || FONT_FAMILIES[0];
   const fontFamily = fontFamilyEntry.font;
+
+  // Calibrate A4 height in browser pixels (297mm)
+  useEffect(() => {
+    if (measureRef.current) {
+      const rect = measureRef.current.getBoundingClientRect();
+      if (rect.height > 500) {
+        setA4Px(rect.height);
+      }
+    }
+  }, []);
+
+  // Live monitor content height to calculate dynamic page cuts
+  useEffect(() => {
+    if (!paperRef.current) return;
+
+    const measure = () => {
+      if (!paperRef.current) return;
+      const scrollH = paperRef.current.scrollHeight;
+      // 16px tolerance threshold prevents accidental 1-line spillover
+      const count = Math.max(1, Math.ceil((scrollH - 16) / a4Px));
+      setPageCount(count);
+      onPageCountChange?.(count);
+    };
+
+    measure();
+
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => {
+        measure();
+      });
+      ro.observe(paperRef.current);
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+    };
+  }, [resume, a4Px, onPageCountChange]);
 
   const visible = resume?.visibleSections || {
     personal: true,
@@ -65,14 +113,31 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
   const showPhoto = Boolean(p.photo && p.photoConfig?.visible !== false);
 
   // ── Render Section Helper ──
+  const getSectionProps = (sectionKey) => {
+    const isBreak = Boolean(resume?.sectionBreaks?.[sectionKey]);
+    const customSpace = Number(resume?.sectionSpacers?.[sectionKey]) || 0;
+    const style = {};
+    if (isBreak) {
+      style.breakBefore = "page";
+      style.pageBreakBefore = "always";
+      style.marginTop = "calc(var(--page-break-gap, 48px) + var(--header-spacing, 36px))";
+    }
+    if (customSpace > 0) {
+      style.marginTop = `${customSpace}px`;
+    }
+    const className = `resume-doc-section section-${sectionKey} ${isBreak ? "page-break-before" : ""}`;
+    return { className, style };
+  };
+
   const renderSection = (sectionKey) => {
     if (!visible[sectionKey]) return null;
+    const { className, style } = getSectionProps(sectionKey);
 
     switch (sectionKey) {
       case "summary":
         if (!resume?.summary) return null;
         return (
-          <section className="resume-doc-section section-summary" key="summary">
+          <section className={className} style={style} key="summary">
             <h2 className="section-title">
               <span className="section-title-text">Professional Profile</span>
               <span className="section-title-line" />
@@ -84,7 +149,7 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "skills":
         if (!skillEntries.length) return null;
         return (
-          <section className="resume-doc-section section-skills" key="skills">
+          <section className={className} style={style} key="skills">
             <h2 className="section-title">
               <span className="section-title-text">Technical Expertise</span>
               <span className="section-title-line" />
@@ -109,36 +174,53 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "experience":
         if (!resume?.experience?.length) return null;
         return (
-          <section className="resume-doc-section section-experience" key="experience">
+          <section className={className} style={style} key="experience">
             <h2 className="section-title">
               <span className="section-title-text">Career History</span>
               <span className="section-title-line" />
             </h2>
             <div className="experience-list">
-              {resume.experience.map((exp, idx) => (
-                <div key={`${exp.company}-${idx}`} className="experience-entry">
-                  <div className="entry-header">
-                    <div className="entry-title-wrap">
-                      <strong className="entry-role">{exp.role}</strong>
-                      <span className="entry-at">at</span>
-                      <span className="entry-company">{exp.company}</span>
+              {resume.experience.map((exp, idx) => {
+                const entryBreak = Boolean(exp.breakBefore);
+                const entrySpace = Number(exp.topSpace) || 0;
+                return (
+                  <div
+                    key={`${exp.company}-${idx}`}
+                    className={`experience-entry ${entryBreak ? "page-break-before" : ""}`}
+                    style={{
+                      ...(entryBreak
+                        ? {
+                            breakBefore: "page",
+                            pageBreakBefore: "always",
+                            marginTop: "calc(var(--page-break-gap, 48px) + var(--header-spacing, 36px))",
+                          }
+                        : {}),
+                      ...(entrySpace > 0 ? { marginTop: `${entrySpace}px` } : {}),
+                    }}
+                  >
+                    <div className="entry-header">
+                      <div className="entry-title-wrap">
+                        <strong className="entry-role">{exp.role}</strong>
+                        <span className="entry-at">at</span>
+                        <span className="entry-company">{exp.company}</span>
+                      </div>
+                      <div className="entry-meta">
+                        <span className="entry-dates">
+                          {[exp.startDate, exp.current ? "Present" : exp.endDate].filter(Boolean).join(" – ")}
+                        </span>
+                        {exp.location && <span className="entry-location"> · {exp.location}</span>}
+                      </div>
                     </div>
-                    <div className="entry-meta">
-                      <span className="entry-dates">
-                        {[exp.startDate, exp.current ? "Present" : exp.endDate].filter(Boolean).join(" – ")}
-                      </span>
-                      {exp.location && <span className="entry-location"> · {exp.location}</span>}
-                    </div>
+                    {exp.bullets && exp.bullets.length > 0 && (
+                      <ul className="entry-bullets">
+                        {exp.bullets.map((bullet, bIdx) => (
+                          <li key={bIdx}>{bullet}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  {exp.bullets && exp.bullets.length > 0 && (
-                    <ul className="entry-bullets">
-                      {exp.bullets.map((bullet, bIdx) => (
-                        <li key={bIdx}>{bullet}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         );
@@ -146,7 +228,7 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "education":
         if (!resume?.education?.length) return null;
         return (
-          <section className="resume-doc-section section-education" key="education">
+          <section className={className} style={style} key="education">
             <h2 className="section-title">
               <span className="section-title-text">Education</span>
               <span className="section-title-line" />
@@ -186,36 +268,60 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "projects":
         if (!resume?.projects?.length) return null;
         return (
-          <section className="resume-doc-section section-projects" key="projects">
+          <section className={className} style={style} key="projects">
             <h2 className="section-title">
               <span className="section-title-text">Selected Builds & Projects</span>
               <span className="section-title-line" />
             </h2>
             <div className="projects-list">
-              {resume.projects.map((proj, idx) => (
-                <div key={`${proj.name}-${idx}`} className="project-entry">
-                  <div className="entry-header">
-                    <div className="entry-title-wrap">
-                      <strong className="entry-name">{proj.name}</strong>
-                      {proj.role && <span className="entry-role"> · {proj.role}</span>}
+              {resume.projects.map((proj, idx) => {
+                const projBreak = Boolean(proj.breakBefore);
+                const projSpace = Number(proj.topSpace) || 0;
+                return (
+                  <div
+                    key={`${proj.name}-${idx}`}
+                    className={`project-entry ${projBreak ? "page-break-before" : ""}`}
+                    style={{
+                      ...(projBreak
+                        ? {
+                            breakBefore: "page",
+                            pageBreakBefore: "always",
+                            marginTop: "calc(var(--page-break-gap, 48px) + var(--header-spacing, 36px))",
+                          }
+                        : {}),
+                      ...(projSpace > 0 ? { marginTop: `${projSpace}px` } : {}),
+                    }}
+                  >
+                    <div className="entry-header">
+                      <div className="entry-title-wrap">
+                        <strong className="entry-name">{proj.name}</strong>
+                        {proj.role && <span className="entry-role"> · {proj.role}</span>}
+                      </div>
+                      <div className="entry-meta">
+                        {proj.date && <span className="entry-dates">{proj.date}</span>}
+                        {proj.link && (
+                          <a href={proj.link} target="_blank" rel="noreferrer" className="entry-link">
+                            ↗ Link
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <div className="entry-meta">
-                      {proj.date && <span className="entry-dates">{proj.date}</span>}
-                      {proj.link && (
-                        <a href={proj.link} target="_blank" rel="noreferrer" className="entry-link">
-                          ↗ Link
-                        </a>
-                      )}
-                    </div>
+                    {proj.description && <p className="project-desc">{proj.description}</p>}
+                    {proj.techStack && (
+                      <div className="project-tech">
+                        <span className="tech-tag">Tech Stack: {proj.techStack}</span>
+                      </div>
+                    )}
+                    {proj.bullets && proj.bullets.length > 0 && (
+                      <ul className="entry-bullets">
+                        {proj.bullets.map((b, bIdx) => (
+                          <li key={bIdx}>{b}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  {proj.description && <p className="project-desc">{proj.description}</p>}
-                  {proj.techStack && (
-                    <div className="project-tech">
-                      <span className="tech-tag">Tech Stack: {proj.techStack}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         );
@@ -223,7 +329,7 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "certifications":
         if (!resume?.certifications?.length) return null;
         return (
-          <section className="resume-doc-section section-certifications" key="certifications">
+          <section className={className} style={style} key="certifications">
             <h2 className="section-title">
               <span className="section-title-text">Certifications & Honors</span>
               <span className="section-title-line" />
@@ -249,7 +355,7 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
       case "languages":
         if (!resume?.languages?.length) return null;
         return (
-          <section className="resume-doc-section section-languages" key="languages">
+          <section className={className} style={style} key="languages">
             <h2 className="section-title">
               <span className="section-title-text">Languages</span>
               <span className="section-title-line" />
@@ -281,6 +387,9 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
   ];
 
   const mainSections = sectionOrder.filter((s) => s !== "personal");
+  const headerSpacing = resume?.headerSpacing || 36;
+  const footerSpacing = resume?.footerSpacing || resume?.bottomMargin || 36;
+  const pageBreakGap = resume?.pageBreakGap || 48;
 
   return (
     <div
@@ -291,12 +400,87 @@ export default function ResumeDocument({ resume, isPrintPreview = false, scale =
         "--line-height": lineHeight,
         "--section-spacing": `${sectionSpacing}px`,
         "--page-padding": `${pagePadding}px`,
+        "--header-spacing": `${headerSpacing}px`,
+        "--footer-spacing": `${footerSpacing}px`,
+        "--page-break-gap": `${pageBreakGap}px`,
+        "--bottom-spacing": `${footerSpacing}px`,
         "--resume-font": fontFamily,
         transform: `scale(${scale})`,
         transformOrigin: "top center",
       }}
     >
-      <article className="resume-paper" aria-label="Resume document">
+      <article
+        ref={paperRef}
+        className="resume-paper"
+        aria-label="Resume document"
+        style={{
+          minHeight: `${pageCount * 297}mm`,
+          paddingTop: `${headerSpacing}px`,
+          paddingBottom: `${footerSpacing}px`,
+        }}
+      >
+        {/* Hidden A4 Height Calibration Gauge */}
+        <div
+          ref={measureRef}
+          className="a4-measure-gauge"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: "297mm",
+            width: "1px",
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Dynamic A4 Page Break Cuts between sheets (Clean side-gutter badges) */}
+        {!isPrintPreview &&
+          pageCount > 1 &&
+          Array.from({ length: pageCount - 1 }).map((_, idx) => {
+            const pageIndex = idx + 1;
+            const topMm = pageIndex * 297;
+            return (
+              <div
+                key={pageIndex}
+                className="a4-page-cut-separator"
+                style={{ top: `${topMm}mm` }}
+                aria-hidden="true"
+              >
+                <div className="cut-dashed-line" />
+                <div className="cut-tag-left">
+                  <span className="cut-icon">✂</span>
+                  <span className="cut-text">PAGE {pageIndex} END</span>
+                </div>
+                <div className="cut-tag-right">
+                  <span className="cut-text">PAGE {pageIndex + 1} START</span>
+                  <span className="cut-badge-a4">297mm A4 CUT</span>
+                </div>
+              </div>
+            );
+          })}
+
+        {/* Dynamic Page Number Indicators on Each Sheet */}
+        {!isPrintPreview &&
+          Array.from({ length: pageCount }).map((_, idx) => {
+            const pageNum = idx + 1;
+            const footerTopMm = pageNum * 297 - 12;
+            return (
+              <div
+                key={pageNum}
+                className="a4-sheet-footer-marker"
+                style={{ top: `${footerTopMm}mm` }}
+                aria-hidden="true"
+              >
+                <span>
+                  Page {pageNum} of {pageCount}
+                </span>
+              </div>
+            );
+          })}
+
         {/* ── Two-Column Layout (Left-Right) ── */}
         {template === "left-right" ? (
           <div className="two-column-layout">

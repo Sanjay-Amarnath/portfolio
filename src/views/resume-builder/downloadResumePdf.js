@@ -133,9 +133,9 @@ export async function downloadResumePdf(resume, fileName = "resume.pdf") {
 
   addSection("Career History", () => addEntries(
     resume.experience,
-    (job) => [job.company, job.role].filter(Boolean).join(" — "),
+    (job) => [job.company, job.role].filter(Boolean).join(" - "),
     (job) => [
-      [job.startDate, job.current ? "Present" : job.endDate].filter(Boolean).join(" – "),
+      [job.startDate, job.current ? "Present" : job.endDate].filter(Boolean).join(" - "),
       job.location,
     ].filter(Boolean).join("  |  "),
     (job) => job.bullets,
@@ -143,22 +143,27 @@ export async function downloadResumePdf(resume, fileName = "resume.pdf") {
 
   addSection("Project Details", () => addEntries(
     resume.projects,
-    (project) => [project.name, project.role].filter(Boolean).join(" — "),
+    (project) => [project.name, project.role].filter(Boolean).join(" - "),
     (project) => [
       project.description,
-      project.technologies?.length ? `Technologies: ${project.technologies.join(", ")}` : "",
+      project.technologies?.length
+        ? `Technologies: ${project.technologies.join(", ")}`
+        : project.techStack
+        ? `Technologies: ${project.techStack}`
+        : "",
     ].filter(Boolean).join("\n"),
     (project) => project.bullets,
   ));
 
   addSection("Education", () => addEntries(
     resume.education,
-    (education) => [education.degree, education.institution].filter(Boolean).join(" — "),
+    (education) => [education.degree, education.school || education.institution].filter(Boolean).join(" - "),
     (education) => [
-      [education.startDate, education.endDate].filter(Boolean).join(" – "),
+      [education.startDate, education.endDate].filter(Boolean).join(" - "),
       education.location,
+      education.gpa ? `GPA: ${education.gpa}` : "",
     ].filter(Boolean).join("  |  "),
-    () => [],
+    (education) => education.bullets || [],
   ));
 
   [
@@ -167,10 +172,15 @@ export async function downloadResumePdf(resume, fileName = "resume.pdf") {
     ["Languages", resume.languages],
   ].forEach(([title, items]) => addSection(title, () => items?.length && (() => {
     items.forEach((item) => {
-      const lines = doc.splitTextToSize(item, textWidth - 5);
+      const itemText = typeof item === "string"
+        ? item
+        : item?.name
+        ? `${item.name}${item.issuer ? ` (${item.issuer})` : ""}${item.level ? ` (${item.level})` : ""}${item.date ? ` - ${item.date}` : ""}`
+        : String(item);
+      const lines = doc.splitTextToSize(itemText, textWidth - 5);
       y = ensurePage(doc, y, lines.length * 4.5 + 2, margin);
       doc.text("-", margin + 1, y);
-      y = addText(doc, item, margin + 5, y, textWidth - 5);
+      y = addText(doc, itemText, margin + 5, y, textWidth - 5);
     });
   })));
 

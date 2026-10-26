@@ -1,7 +1,5 @@
 import "./skills.scss";
-import Diamond from "../../assets/svg/diamond-outline.svg";
-import Pulse from "../../assets/svg/pulse-outline.svg";
-import School from "../../assets/svg/school-outline.svg";
+import { Diamond, Pulse, School } from "../../assets/svg/icons";
 
 const expertise = [
   {
