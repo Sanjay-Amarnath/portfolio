@@ -1,899 +1,1442 @@
 "use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  createEmptyResume,
-  createGeminiImagePart,
+  DEFAULT_SANJAY_RESUME,
+  BLANK_RESUME,
+  TEMPLATES,
+  THEME_COLORS,
+  FONT_FAMILIES,
+} from "./constants";
+import {
   extractResumeText,
-  generateResumeWithGemini,
   getAtsAnalysis,
   getDraftFromStorage,
-  MAX_RESUME_FILE_SIZE,
-  MAX_RESUME_TEXT_LENGTH,
-  RESUME_DRAFT_KEY,
+  saveDraftToStorage,
+  resumeToMarkdown,
+  markdownToResume,
+  exportResumeJson,
+  importResumeJson,
+  polishBullet,
 } from "./utils";
 import { downloadResumePdf } from "./downloadResumePdf";
 import ResumeDocument from "./ResumeDocument";
 import "./resume-builder.scss";
 
-const DEFAULT_DETAILS = {
-  name: "",
-  email: "",
-  phone: "",
-  location: "",
-  linkedin: "",
-  github: "",
-  portfolio: "",
-};
+export default function ResumeBuilder() {
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light";
+    const saved = window.localStorage.getItem("portfolio-theme");
+    if (saved === "dark" || saved === "light") return saved;
+    return typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+  const [resume, setResume] = useState(() => getDraftFromStorage());
+  const [activeTab, setActiveTab] = useState("editor"); // "editor" | "markdown" | "design" | "ats"
+  const [editorSection, setEditorSection] = useState("personal"); // "personal" | "summary" | "skills" | "experience" | "education" | "projects" | "extras"
+  const [mobileView, setMobileView] = useState("editor"); // "editor" | "preview"
+  const [scale, setScale] = useState(1);
+  const [jobDescription, setJobDescription] = useState("");
+  const [markdownText, setMarkdownText] = useState("");
+  const [notification, setNotification] = useState("");
+  const [history, setHistory] = useState([]);
+  const [future, setFuture] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const fileInputRef = useRef(null);
 
-const SKILL_EDITOR_GROUPS = [
-  ["programming", "Programming"],
-  ["frameworks", "Frameworks"],
-  ["webTechnologies", "Web technologies"],
-  ["tools", "Tools"],
-  ["cloud", "Cloud"],
-  ["ai", "AI"],
-  ["databases", "Databases"],
-];
-const PERSONAL_FIELDS = new Set([
-  "name",
-  "email",
-  "phone",
-  "location",
-  "linkedin",
-  "github",
-  "portfolio",
-]);
-
-function ResumeBuilder() {
-  const initialDraft = useMemo(() => getDraftFromStorage(), []);
-  const [details, setDetails] = useState({ ...DEFAULT_DETAILS, ...initialDraft?.details });
-  const [manualResume, setManualResume] = useState(
-    initialDraft?.manualResume || createEmptyResume(initialDraft?.details),
-  );
-  const [resumeText, setResumeText] = useState(initialDraft?.resumeText || "");
-  const [jobDescription, setJobDescription] = useState(initialDraft?.jobDescription || "");
-  const [generatedResume, setGeneratedResume] = useState(initialDraft?.generatedResume || null);
-  const [saveDraft, setSaveDraft] = useState(Boolean(
-    initialDraft && !initialDraft.storageError && !initialDraft.migrated,
-  ));
-  const [apiKey, setApiKey] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [resumeImage, setResumeImage] = useState(null);
-  const [isReading, setIsReading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [error, setError] = useState(initialDraft?.storageError || "");
-  const [notice, setNotice] = useState("");
-  const fileInput = useRef(null);
-
+  // Set document title and mark hydration
   useEffect(() => {
-    const previousTitle = document.title;
-    document.title = "Resume Lab | Sanjay Amarnath";
+    setIsHydrated(true);
+    const prev = document.title;
+    document.title = "Resume Lab — Magic Resume Studio | Sanjay Amarnath";
     return () => {
-      document.title = previousTitle;
+      document.title = prev;
     };
   }, []);
 
-  const ats = useMemo(
-    () => getAtsAnalysis(jobDescription, generatedResume || manualResume),
-    [generatedResume, jobDescription, manualResume],
-  );
-
+  // Sync initial markdown
   useEffect(() => {
-    if (!saveDraft) {
-      try {
-        window.localStorage.removeItem(RESUME_DRAFT_KEY);
-      } catch (storageError) {
-        setError(`Could not remove the saved draft from this browser: ${storageError.message}`);
-      }
-      return;
+    setMarkdownText(resumeToMarkdown(resume));
+  }, []);
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    saveDraftToStorage(resume);
+  }, [resume]);
+
+  // Show transient notification toast
+  const showNotice = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(""), 3500);
+  };
+
+  // State updater with undo history
+  const updateResume = (updater) => {
+    setResume((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater };
+      setHistory((h) => [...h.slice(-20), prev]);
+      setFuture([]);
+      return next;
+    });
+  };
+
+  const handleUndo = () => {
+    if (!history.length) return;
+    const prev = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setFuture((f) => [resume, ...f]);
+    setResume(prev);
+    setMarkdownText(resumeToMarkdown(prev));
+    showNotice("Action undone");
+  };
+
+  const handleRedo = () => {
+    if (!future.length) return;
+    const next = future[0];
+    setFuture((f) => f.slice(1));
+    setHistory((h) => [...h, resume]);
+    setResume(next);
+    setMarkdownText(resumeToMarkdown(next));
+    showNotice("Action redone");
+  };
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("portfolio-theme", next);
+      document.documentElement.style.colorScheme = next;
     }
+  };
+
+  // Load Preset Resume
+  const loadPreset = (presetKey) => {
+    if (presetKey === "blank") {
+      updateResume(BLANK_RESUME);
+      setMarkdownText(resumeToMarkdown(BLANK_RESUME));
+      showNotice("Loaded blank resume template");
+    } else {
+      updateResume(DEFAULT_SANJAY_RESUME);
+      setMarkdownText(resumeToMarkdown(DEFAULT_SANJAY_RESUME));
+      showNotice("Loaded Sanjay Amarnath profile");
+    }
+  };
+
+  // Markdown live sync
+  const handleMarkdownChange = (newMd) => {
+    setMarkdownText(newMd);
     try {
-      window.localStorage.setItem(RESUME_DRAFT_KEY, JSON.stringify({
-        version: 3,
-        details,
-        manualResume,
-        resumeText,
-        jobDescription,
-        generatedResume,
-      }));
-    } catch (storageError) {
-      setError(`Could not save this draft in your browser: ${storageError.message}`);
-      setSaveDraft(false);
-    }
-  }, [details, generatedResume, jobDescription, manualResume, resumeText, saveDraft]);
-
-  const updateDetails = (event) => {
-    const { name, value } = event.target;
-    setDetails((current) => ({ ...current, [name]: value }));
-    if (PERSONAL_FIELDS.has(name)) {
-      setManualResume((current) => ({
-        ...current,
-        personal: { ...current.personal, [name]: value },
-      }));
-      setGeneratedResume((current) => current ? ({
-        ...current,
-        personal: { ...current.personal, [name]: value },
-      }) : current);
-    }
-    setError("");
-  };
-
-  const handleFileSelection = async (file) => {
-    if (!file) return;
-    const extension = file.name.split(".").pop()?.toLowerCase();
-    const imageExtensions = ["jpg", "jpeg", "png", "webp"];
-    if (!["pdf", "docx", "txt", ...imageExtensions].includes(extension)) {
-      setError("Choose a PDF, DOCX, TXT, JPG, PNG, or WEBP resume.");
-      return;
-    }
-    if (file.size > MAX_RESUME_FILE_SIZE) {
-      setError("Choose a resume file smaller than 5 MB.");
-      return;
-    }
-
-    setIsReading(true);
-    setError("");
-    setNotice("");
-    setGeneratedResume(null);
-    setResumeText("");
-    setResumeImage(null);
-    setFileName("");
-    try {
-      if (imageExtensions.includes(extension)) {
-        const imagePart = await createGeminiImagePart(file);
-        setResumeImage(imagePart);
-        setFileName(file.name);
-        setNotice("Resume image ready. To fill the form, enter your Gemini API key below and choose Extract details with Gemini. The image is sent only after you choose that action.");
-        return;
-      }
-
-      const text = await extractResumeText(file);
-      setResumeText(text);
-      setFileName(file.name);
-      setNotice("Resume text extracted locally. To fill the form, enter your Gemini API key below and choose Extract details with Gemini. The resume is sent only after you choose that action.");
-    } catch (readError) {
-      setError(readError.message);
-    } finally {
-      setIsReading(false);
+      const parsed = markdownToResume(newMd, resume);
+      setResume(parsed);
+    } catch {
+      // keep editing safely
     }
   };
 
-  const handleDrop = (event) => {
-    event.preventDefault();
-    void handleFileSelection(event.dataTransfer.files?.[0]);
+  // Print / PDF Export
+  const handlePrint = () => {
+    window.print();
   };
 
-  const handleGenerate = async (requireJobDescription = true) => {
-    setError("");
-    setNotice("");
-    if (!resumeText.trim() && !resumeImage) {
-      setError("Add a resume file or paste your resume text first.");
-      return;
-    }
-    if (requireJobDescription && !jobDescription.trim()) {
-      setError("Paste the job description you want to target.");
-      return;
-    }
-    if (!apiKey.trim()) {
-      setError("Enter your own Gemini API key to generate a tailored resume.");
-      return;
-    }
-    const sourceText = `${resumeText}\n${JSON.stringify(details)}\n${JSON.stringify(manualResume)}`;
-    if (sourceText.length + jobDescription.length > 45000) {
-      setError("Resume and job description together must be under 45,000 characters for this request.");
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const result = await generateResumeWithGemini({
-        apiKey: apiKey.trim(),
-        resumeText: sourceText,
-        resumeImage,
-        jobDescription,
-        details,
-      });
-      result.personal = {
-        ...result.personal,
-        name: result.personal.name || details.name,
-        phone: result.personal.phone || details.phone,
-        email: result.personal.email || details.email,
-        location: result.personal.location || details.location,
-        linkedin: result.personal.linkedin || details.linkedin,
-        github: result.personal.github || details.github,
-        portfolio: result.personal.portfolio || details.portfolio,
-      };
-      setGeneratedResume(result);
-      setDetails((current) => ({
-        ...current,
-        name: result.personal.name,
-        email: result.personal.email,
-        phone: result.personal.phone,
-        location: result.personal.location,
-        linkedin: result.personal.linkedin,
-        github: result.personal.github,
-        portfolio: result.personal.portfolio,
-      }));
-      setNotice(jobDescription.trim()
-        ? "Resume details extracted and tailored. Review every detail for accuracy before using it."
-        : "Resume details extracted into the form. Add a job description and generate a tailored version when ready.");
-    } catch (generationError) {
-      setError(`Could not generate the resume: ${generationError.message}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const clearDraft = () => {
-    try {
-      window.localStorage.removeItem(RESUME_DRAFT_KEY);
-      setSaveDraft(false);
-      setDetails(DEFAULT_DETAILS);
-      setResumeText("");
-      setResumeImage(null);
-      setJobDescription("");
-      setGeneratedResume(null);
-      setManualResume(createEmptyResume());
-      setFileName("");
-      setError("");
-      setNotice("Draft cleared from this browser.");
-      if (fileInput.current) fileInput.current.value = "";
-    } catch (clearError) {
-      setError(`Could not clear the saved draft: ${clearError.message}`);
-    }
-  };
-
-  const addFiles = (event) => {
-    const file = event.target.files?.[0];
-    void handleFileSelection(file);
-    event.target.value = "";
-  };
-
-  const renderedResume = generatedResume || manualResume;
-  const hasResumeData = Boolean(
-    renderedResume.personal.name
-    || renderedResume.personal.title
-    || renderedResume.personal.email
-    || renderedResume.personal.phone
-    || renderedResume.summary
-    || Object.values(renderedResume.skills).some((items) => items.length)
-    || renderedResume.experience.length
-    || renderedResume.projects.length
-    || renderedResume.education.length
-    || renderedResume.achievements.length
-    || renderedResume.certifications.length
-    || renderedResume.languages.length,
-  );
-  const handleManualField = (field, value) => {
-    setManualResume((current) => ({ ...current, [field]: value }));
-    setGeneratedResume(null);
-  };
-  const handleManualPersonal = (field, value) => {
-    setManualResume((current) => ({
-      ...current,
-      personal: { ...current.personal, [field]: value },
-    }));
-    setGeneratedResume(null);
-  };
-  const handleManualSkill = (group, value) => {
-    setManualResume((current) => ({
-      ...current,
-      skills: {
-        ...current.skills,
-        [group]: value.split(",").map((item) => item.trim()).filter(Boolean),
-      },
-    }));
-    setGeneratedResume(null);
-  };
-  const handleManualEntry = (section, index, field, value, list = false) => {
-    setManualResume((current) => ({
-      ...current,
-      [section]: current[section].map((entry, entryIndex) => (
-        entryIndex === index
-          ? {
-            ...entry,
-            [field]: list
-              ? value.split("\n").map((item) => item.trim()).filter(Boolean)
-              : value,
-          }
-          : entry
-      )),
-    }));
-    setGeneratedResume(null);
-  };
-  const addManualEntry = (section, entry) => {
-    setManualResume((current) => ({ ...current, [section]: [...current[section], entry] }));
-    setGeneratedResume(null);
-  };
-  const removeManualEntry = (section, index) => {
-    setManualResume((current) => ({
-      ...current,
-      [section]: current[section].filter((_, entryIndex) => entryIndex !== index),
-    }));
-    setGeneratedResume(null);
-  };
   const handleDownloadPdf = async () => {
-    setError("");
-    setNotice("");
-    setIsDownloading(true);
+    setIsExporting(true);
+    showNotice("Generating PDF document...");
     try {
-      await downloadResumePdf(
-        renderedResume,
-        `${renderedResume.personal.name || "resume"}.pdf`,
-      );
-      setNotice("Your resume PDF is ready. Check your browser's downloads.");
-    } catch (downloadError) {
-      setError(`Could not create the PDF: ${downloadError.message}`);
+      await downloadResumePdf(resume);
+      showNotice("PDF downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      window.print();
     } finally {
-      setIsDownloading(false);
+      setIsExporting(false);
     }
   };
-  const updateResumeField = (field, value) => {
-    setGeneratedResume((current) => ({ ...current, [field]: value }));
+
+  // Import JSON / File
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      if (file.name.endsWith(".json")) {
+        const text = await file.text();
+        const imported = importResumeJson(text);
+        updateResume(imported);
+        setMarkdownText(resumeToMarkdown(imported));
+        showNotice("JSON resume imported successfully!");
+      } else {
+        showNotice("Extracting document text...");
+        const extracted = await extractResumeText(file);
+        setMarkdownText(extracted);
+        const parsed = markdownToResume(extracted, resume);
+        updateResume(parsed);
+        showNotice("Document extracted and parsed!");
+      }
+    } catch (err) {
+      showNotice(`Import error: ${err.message}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
-  const updatePersonalField = (field, value) => {
-    setGeneratedResume((current) => ({
-      ...current,
-      personal: { ...current.personal, [field]: value },
-    }));
-  };
-  const updateSkillGroup = (group, value) => {
-    setGeneratedResume((current) => ({
-      ...current,
-      skills: {
-        ...current.skills,
-        [group]: value.split(",").map((item) => item.trim()).filter(Boolean),
-      },
-    }));
-  };
-  const updateEntryField = (section, index, field, value) => {
-    setGeneratedResume((current) => ({
-      ...current,
-      [section]: current[section].map((entry, entryIndex) => (
-        entryIndex === index ? { ...entry, [field]: value } : entry
-      )),
-    }));
-  };
-  const updateEntryList = (section, index, field, value) => {
-    updateEntryField(
-      section,
-      index,
-      field,
-      value.split("\n").map((item) => item.trim()).filter(Boolean),
-    );
-  };
-  const updateResumeList = (field, value) => {
-    updateResumeField(field, value.split("\n").map((item) => item.trim()).filter(Boolean));
-  };
+
+  // ATS Analysis calculation
+  const ats = useMemo(() => {
+    return getAtsAnalysis(jobDescription, resume);
+  }, [jobDescription, resume]);
 
   return (
-    <main className="resume-builder">
-      <header className="builder-topbar">
-        <a className="builder-brand" href="/" aria-label="Back to Sanjay Amarnath portfolio">
-          <span className="builder-brand-mark">S.</span>
-          <span>FIELD NOTES <small>CAREER TOOLKIT</small></span>
-        </a>
-        <a className="builder-back-link" href="/">Back to portfolio <span aria-hidden="true">↗</span></a>
-      </header>
+    <div className="portfolio-shell resume-studio-shell" data-theme={theme}>
+      <div className="resume-builder-workspace" data-hydrated={isHydrated ? "true" : "false"}>
+        {/* ── Top Command Bar ── */}
+        <header className="resume-topbar">
+          <div className="topbar-brand">
+            <a href="/" className="back-home-link" aria-label="Return to portfolio">
+              <span className="logo-monogram" aria-hidden="true">
+                <span className="logo-mark-initial">S</span>
+                <span className="logo-mark-period">.</span>
+              </span>
+              <span className="back-home-label">← Home</span>
+            </a>
+            <div className="brand-title-wrap">
+              <h1 className="brand-title">Resume Lab</h1>
+              <span className="brand-pill">Studio</span>
+            </div>
+          </div>
 
-      <section className="builder-heading">
-        <p className="builder-kicker"><span>01</span> THE CAREER NAVIGATOR</p>
-        <h1>Make your next move <em>count.</em></h1>
-        <p>Shape a clear, role-specific resume from your real experience. Your file stays in this browser unless you choose to send it to Gemini for tailoring.</p>
-      </section>
+          <nav className="topbar-tabs" aria-label="Builder tabs">
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === "editor" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("editor")}
+            >
+              Editor
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === "design" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("design")}
+            >
+              Templates & Style
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === "markdown" ? "is-active" : ""}`}
+              onClick={() => {
+                setMarkdownText(resumeToMarkdown(resume));
+                setActiveTab("markdown");
+              }}
+            >
+              Markdown
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === "ats" ? "is-active" : ""}`}
+              onClick={() => setActiveTab("ats")}
+            >
+              ATS Matcher
+              {jobDescription && <span className="ats-badge">{ats.score}%</span>}
+            </button>
+          </nav>
 
-      <div className="builder-notice" role="note">
-        <span aria-hidden="true">◈</span>
-        <p><strong>Private by default.</strong> Text resumes are read on this device. Nothing is sent to AI until you choose Generate; then your resume text or selected image and job description go directly to Google Gemini using your key.</p>
+          <div className="topbar-actions">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              {theme === "dark" ? (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
+                  <path d="m16.5 3 .5 1.5 1.5.5-1.5.5-.5 1.5L16 5.5l-1.5-.5 1.5-.5.5-1.5Z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Undo / Redo */}
+            <div className="undo-redo-group">
+              <button
+                type="button"
+                className="icon-action-btn"
+                onClick={handleUndo}
+                disabled={!history.length}
+                title="Undo"
+                aria-label="Undo last change"
+              >
+                ↺
+              </button>
+              <button
+                type="button"
+                className="icon-action-btn"
+                onClick={handleRedo}
+                disabled={!future.length}
+                title="Redo"
+                aria-label="Redo change"
+              >
+                ↻
+              </button>
+            </div>
+
+            {/* Preset Selector */}
+            <select
+              className="preset-select"
+              aria-label="Load preset resume"
+              onChange={(e) => loadPreset(e.target.value)}
+              defaultValue="sanjay"
+            >
+              <option value="sanjay">Sanjay Amarnath (Default)</option>
+              <option value="blank">Blank Resume</option>
+            </select>
+
+            {/* Export / Import Menu */}
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import JSON, PDF, DOCX or MD"
+            >
+              Import
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".json,.pdf,.docx,.txt,.md"
+              style={{ display: "none" }}
+            />
+
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => exportResumeJson(resume)}
+              title="Export JSON resume data"
+            >
+              Export JSON
+            </button>
+
+            <button
+              type="button"
+              className="primary-action-btn"
+              onClick={handlePrint}
+              title="Print or Save as PDF via browser"
+            >
+              <span>Print / PDF</span>
+              <span aria-hidden="true">↓</span>
+            </button>
+          </div>
+        </header>
+
+      {/* ── Mobile View Toggle Bar ── */}
+      <div className="mobile-view-bar">
+        <button
+          type="button"
+          className={`mobile-view-btn ${mobileView === "editor" ? "is-active" : ""}`}
+          onClick={() => setMobileView("editor")}
+        >
+          Workbench
+        </button>
+        <button
+          type="button"
+          className={`mobile-view-btn ${mobileView === "preview" ? "is-active" : ""}`}
+          onClick={() => setMobileView("preview")}
+        >
+          Preview Canvas
+        </button>
       </div>
 
-      {(error || notice) && (
-        <div className={`builder-feedback ${error ? "is-error" : "is-success"}`} role={error ? "alert" : "status"}>
-          {error || notice}
-        </div>
-      )}
-
-      <div className="builder-workspace">
-        <div className="builder-controls">
-          <section className="builder-panel">
-            <div className="builder-panel-heading">
-              <span className="builder-step">01</span>
-              <div><h2>Your details</h2><p>Fill these in to begin; the resume preview updates as you type.</p></div>
-            </div>
-            <div className="builder-fields">
-              {[
-                ["name", "Full name", "Sanjay Amarnath"],
-                ["email", "Email", "you@example.com"],
-                ["phone", "Phone", "+1 555 000 0000"],
-                ["location", "Location", "City, Country"],
-                ["linkedin", "LinkedIn", "linkedin.com/in/you"],
-                ["github", "GitHub", "github.com/you"],
-                ["portfolio", "Portfolio", "yourportfolio.com"],
-              ].map(([name, label, placeholder]) => (
-                <label className={name === "name" ? "builder-field builder-field-wide" : "builder-field"} key={name}>
-                  <span>{label}</span>
-                  <input name={name} value={details[name] || ""} onChange={updateDetails} placeholder={placeholder} />
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {!generatedResume && (
-            <section className="builder-panel builder-manual-editor">
-              <div className="builder-panel-heading">
-                <span className="builder-step">02</span>
-                <div><h2>Build your resume</h2><p>Enter your information below; the preview updates as you type. AI is optional.</p></div>
+      {/* ── Main Dual-Pane Workspace ── */}
+      <main className="resume-main-layout">
+        {/* ── LEFT PANE: CONTROLS & EDITORS ── */}
+        <section className={`builder-controls-pane ${mobileView === "editor" ? "is-mobile-visible" : ""}`}>
+          {/* TAB 1: VISUAL FORM EDITOR */}
+          {activeTab === "editor" && (
+            <div className="editor-tab-content">
+              {/* Sub-navigation for Editor Sections */}
+              <div className="editor-subnav">
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "personal" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("personal")}
+                >
+                  Basics
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "summary" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("summary")}
+                >
+                  Summary
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "experience" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("experience")}
+                >
+                  Experience ({resume.experience?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "skills" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("skills")}
+                >
+                  Skills
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "education" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("education")}
+                >
+                  Education
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "projects" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("projects")}
+                >
+                  Projects ({resume.projects?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  className={`subnav-pill ${editorSection === "extras" ? "is-active" : ""}`}
+                  onClick={() => setEditorSection("extras")}
+                >
+                  Certs & Lang
+                </button>
               </div>
-              <label className="builder-text-label" htmlFor="manual-title">Professional title</label>
-              <input
-                id="manual-title"
-                className="builder-key-input"
-                value={manualResume.personal.title}
-                onChange={(event) => handleManualPersonal("title", event.target.value)}
-                placeholder="Frontend Developer"
-              />
-              <label className="builder-text-label" htmlFor="manual-summary">Professional profile</label>
-              <textarea
-                id="manual-summary"
-                className="builder-textarea"
-                rows={4}
-                value={manualResume.summary}
-                onChange={(event) => handleManualField("summary", event.target.value)}
-                placeholder="Summarize your experience and strengths."
-              />
-              <p className="builder-editor-subtitle">Technical expertise · comma-separated</p>
-              {SKILL_EDITOR_GROUPS.map(([group, label]) => (
-                <label className="builder-editor-field" key={group}>
-                  <span>{label}</span>
-                  <input
-                    value={manualResume.skills[group].join(", ")}
-                    onChange={(event) => handleManualSkill(group, event.target.value)}
-                    placeholder={`Add ${label.toLowerCase()}`}
-                  />
-                </label>
-              ))}
 
-              <div className="builder-manual-section">
-                <div className="builder-manual-section-heading">
-                  <h3>Career history</h3>
-                  <button type="button" className="builder-add-button" onClick={() => addManualEntry("experience", {
-                    company: "", role: "", location: "", startDate: "", endDate: "", current: false, bullets: [],
-                  })}>+ Add experience</button>
-                </div>
-                {manualResume.experience.map((job, index) => (
-                  <fieldset className="builder-editor-entry" key={`manual-experience-${index}`}>
-                    <legend>Experience {index + 1}</legend>
-                    <button type="button" className="builder-remove-button" onClick={() => removeManualEntry("experience", index)}>Remove</button>
-                    <div className="builder-editor-grid">
-                      {[
-                        ["company", "Company"],
-                        ["role", "Job title"],
-                        ["location", "Location"],
-                        ["startDate", "Start date"],
-                        ["endDate", "End date"],
-                      ].map(([field, label]) => (
-                        <label className="builder-editor-field" key={field}>
-                          <span>{label}</span>
-                          <input
-                            value={job[field]}
-                            onChange={(event) => handleManualEntry("experience", index, field, event.target.value)}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                    <label className="builder-editor-field builder-current-role">
+              {/* 1. Basics / Personal Section */}
+              {editorSection === "personal" && (
+                <div className="editor-card">
+                  <h3 className="card-title">Personal Details & Contacts</h3>
+                  <div className="form-grid-2">
+                    <div className="input-group">
+                      <label htmlFor="p-name">Full Name</label>
                       <input
-                        type="checkbox"
-                        checked={job.current}
-                        onChange={(event) => handleManualEntry("experience", index, "current", event.target.checked)}
+                        id="p-name"
+                        type="text"
+                        value={resume.personal?.name || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, name: e.target.value },
+                          }))
+                        }
+                        placeholder="e.g. Sanjay Amarnath"
                       />
-                      <span>Currently working here</span>
-                    </label>
-                    <label className="builder-editor-field">
-                      <span>Achievements and responsibilities · one per line</span>
-                      <textarea
-                        rows={4}
-                        value={job.bullets.join("\n")}
-                        onChange={(event) => handleManualEntry("experience", index, "bullets", event.target.value, true)}
-                        placeholder="Built reusable React components..."
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-title">Headline / Title</label>
+                      <input
+                        id="p-title"
+                        type="text"
+                        value={resume.personal?.title || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, title: e.target.value },
+                          }))
+                        }
+                        placeholder="e.g. Senior Frontend Engineer"
                       />
-                    </label>
-                  </fieldset>
-                ))}
-              </div>
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-email">Email</label>
+                      <input
+                        id="p-email"
+                        type="email"
+                        value={resume.personal?.email || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, email: e.target.value },
+                          }))
+                        }
+                        placeholder="sanjay@example.com"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-phone">Phone Number</label>
+                      <input
+                        id="p-phone"
+                        type="text"
+                        value={resume.personal?.phone || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, phone: e.target.value },
+                          }))
+                        }
+                        placeholder="+91 98765 43210"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-location">Location</label>
+                      <input
+                        id="p-location"
+                        type="text"
+                        value={resume.personal?.location || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, location: e.target.value },
+                          }))
+                        }
+                        placeholder="City, Country"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-portfolio">Portfolio / Website</label>
+                      <input
+                        id="p-portfolio"
+                        type="text"
+                        value={resume.personal?.portfolio || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, portfolio: e.target.value },
+                          }))
+                        }
+                        placeholder="https://yourportfolio.com"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-linkedin">LinkedIn URL</label>
+                      <input
+                        id="p-linkedin"
+                        type="text"
+                        value={resume.personal?.linkedin || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, linkedin: e.target.value },
+                          }))
+                        }
+                        placeholder="https://linkedin.com/in/username"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="p-github">GitHub URL</label>
+                      <input
+                        id="p-github"
+                        type="text"
+                        value={resume.personal?.github || ""}
+                        onChange={(e) =>
+                          updateResume((r) => ({
+                            ...r,
+                            personal: { ...r.personal, github: e.target.value },
+                          }))
+                        }
+                        placeholder="https://github.com/username"
+                      />
+                    </div>
+                  </div>
 
-              <div className="builder-manual-section">
-                <div className="builder-manual-section-heading">
-                  <h3>Projects</h3>
-                  <button type="button" className="builder-add-button" onClick={() => addManualEntry("projects", {
-                    name: "", description: "", role: "", technologies: [], bullets: [],
-                  })}>+ Add project</button>
-                </div>
-                {manualResume.projects.map((project, index) => (
-                  <fieldset className="builder-editor-entry" key={`manual-project-${index}`}>
-                    <legend>Project {index + 1}</legend>
-                    <button type="button" className="builder-remove-button" onClick={() => removeManualEntry("projects", index)}>Remove</button>
-                    {[
-                      ["name", "Project name"],
-                      ["role", "Your role"],
-                      ["description", "Description"],
-                    ].map(([field, label]) => (
-                      <label className="builder-editor-field" key={field}>
-                        <span>{label}</span>
+                  {/* Photo Configuration */}
+                  <div className="photo-settings-card">
+                    <div className="photo-header">
+                      <label className="checkbox-label">
                         <input
-                          value={project[field]}
-                          onChange={(event) => handleManualEntry("projects", index, field, event.target.value)}
+                          type="checkbox"
+                          checked={resume.personal?.photoConfig?.visible !== false}
+                          onChange={(e) =>
+                            updateResume((r) => ({
+                              ...r,
+                              personal: {
+                                ...r.personal,
+                                photoConfig: { ...r.personal?.photoConfig, visible: e.target.checked },
+                              },
+                            }))
+                          }
                         />
+                        <span>Display Profile Photo</span>
                       </label>
-                    ))}
-                    <label className="builder-editor-field">
-                      <span>Technologies · comma-separated</span>
-                      <input
-                        value={project.technologies.join(", ")}
-                        onChange={(event) => handleManualEntry(
-                          "projects",
-                          index,
-                          "technologies",
-                          event.target.value.split(",").map((item) => item.trim()).filter(Boolean),
-                        )}
-                      />
-                    </label>
-                    <label className="builder-editor-field">
-                      <span>Key contributions · one per line</span>
-                      <textarea
-                        rows={3}
-                        value={project.bullets.join("\n")}
-                        onChange={(event) => handleManualEntry("projects", index, "bullets", event.target.value, true)}
-                      />
-                    </label>
-                  </fieldset>
-                ))}
-              </div>
-
-              <div className="builder-manual-section">
-                <div className="builder-manual-section-heading">
-                  <h3>Education</h3>
-                  <button type="button" className="builder-add-button" onClick={() => addManualEntry("education", {
-                    degree: "", institution: "", location: "", startDate: "", endDate: "",
-                  })}>+ Add education</button>
-                </div>
-                {manualResume.education.map((education, index) => (
-                  <fieldset className="builder-editor-entry" key={`manual-education-${index}`}>
-                    <legend>Education {index + 1}</legend>
-                    <button type="button" className="builder-remove-button" onClick={() => removeManualEntry("education", index)}>Remove</button>
-                    <div className="builder-editor-grid">
-                      {[
-                        ["degree", "Degree"],
-                        ["institution", "Institution"],
-                        ["location", "Location"],
-                        ["startDate", "Start date"],
-                        ["endDate", "End date"],
-                      ].map(([field, label]) => (
-                        <label className="builder-editor-field" key={field}>
-                          <span>{label}</span>
-                          <input
-                            value={education[field]}
-                            onChange={(event) => handleManualEntry("education", index, field, event.target.value)}
-                          />
-                        </label>
-                      ))}
                     </div>
-                  </fieldset>
-                ))}
-              </div>
-
-              {[
-                ["achievements", "Achievements · one per line"],
-                ["certifications", "Certifications · one per line"],
-                ["languages", "Languages · one per line"],
-              ].map(([field, label]) => (
-                <label className="builder-editor-field" key={field}>
-                  <span>{label}</span>
-                  <textarea
-                    rows={3}
-                    value={manualResume[field].join("\n")}
-                    onChange={(event) => handleManualField(
-                      field,
-                      event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
+                    {resume.personal?.photoConfig?.visible !== false && (
+                      <div className="photo-controls-row">
+                        <div className="input-group">
+                          <label htmlFor="p-photo-url">Photo URL or Path</label>
+                          <input
+                            id="p-photo-url"
+                            type="text"
+                            value={resume.personal?.photo || ""}
+                            onChange={(e) =>
+                              updateResume((r) => ({
+                                ...r,
+                                personal: { ...r.personal, photo: e.target.value },
+                              }))
+                            }
+                            placeholder="/images/sanjay.png"
+                          />
+                        </div>
+                        <div className="input-group">
+                          <label>Photo Shape</label>
+                          <div className="shape-picker">
+                            {["rounded", "circle", "square"].map((sh) => (
+                              <button
+                                key={sh}
+                                type="button"
+                                className={`shape-btn ${
+                                  (resume.personal?.photoConfig?.shape || "rounded") === sh ? "is-selected" : ""
+                                }`}
+                                onClick={() =>
+                                  updateResume((r) => ({
+                                    ...r,
+                                    personal: {
+                                      ...r.personal,
+                                      photoConfig: { ...r.personal?.photoConfig, shape: sh },
+                                    },
+                                  }))
+                                }
+                              >
+                                {sh}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Professional Summary */}
+              {editorSection === "summary" && (
+                <div className="editor-card">
+                  <div className="card-header-flex">
+                    <h3 className="card-title">Professional Summary</h3>
+                    <button
+                      type="button"
+                      className="magic-polish-btn"
+                      onClick={() => {
+                        const polished = polishBullet(resume.summary);
+                        updateResume((r) => ({ ...r, summary: polished }));
+                        showNotice("Summary polished with active verbs!");
+                      }}
+                      title="Polish with action verbs"
+                    >
+                      ✨ Polish Summary
+                    </button>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={resume.summary || ""}
+                    onChange={(e) => updateResume((r) => ({ ...r, summary: e.target.value }))}
+                    placeholder="Brief 2-4 sentence summary of your career impact, key domains, and technical focus..."
+                    className="styled-textarea"
                   />
-                </label>
-              ))}
-            </section>
-          )}
+                </div>
+              )}
 
-          <section className="builder-panel">
-            <div className="builder-panel-heading">
-              <span className="builder-step">02</span>
-              <div><h2>Start with your experience</h2><p>Upload a resume or paste its text below.</p></div>
-            </div>
-            <div
-              className="builder-dropzone"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={handleDrop}
-            >
-              <span className="builder-file-icon" aria-hidden="true">↥</span>
-              <strong>{fileName || "Drop your resume here"}</strong>
-              <span>PDF, DOCX, TXT, JPG, PNG, or WEBP · up to 5 MB</span>
-              <button type="button" className="builder-secondary-button" onClick={() => fileInput.current?.click()} disabled={isReading}>
-                {isReading ? "Reading resume…" : "Choose a file"}
-              </button>
-              <input ref={fileInput} className="builder-visually-hidden" type="file" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp,application/pdf,text/plain,image/jpeg,image/png,image/webp" onChange={addFiles} />
-            </div>
-            <label className="builder-text-label" htmlFor="resume-text">Resume text</label>
-            <textarea
-              id="resume-text"
-              className="builder-textarea"
-              value={resumeText}
-              onChange={(event) => {
-                setResumeText(event.target.value.slice(0, MAX_RESUME_TEXT_LENGTH));
-                setGeneratedResume(null);
-              }}
-              maxLength={MAX_RESUME_TEXT_LENGTH}
-              rows={8}
-              placeholder="Paste your resume text here, or extract it from a file above."
-            />
-            <span className="builder-character-count">{resumeText.length.toLocaleString()} / 100,000 characters</span>
-            <button
-              className="builder-primary-button builder-extract-button"
-              type="button"
-              onClick={() => handleGenerate(false)}
-              disabled={isGenerating || isReading || (!resumeText.trim() && !resumeImage)}
-            >
-              {isGenerating ? "Extracting resume details…" : "Extract details with Gemini"}
-              <span aria-hidden="true">↗</span>
-            </button>
-            <p className="builder-key-note">Enter your Gemini API key in the AI panel below, then use this button to fill the personal details, skills, work history, projects, and education from your resume. A job description is optional for extraction.</p>
-          </section>
+              {/* 3. Experience */}
+              {editorSection === "experience" && (
+                <div className="editor-card">
+                  <div className="card-header-flex">
+                    <h3 className="card-title">Work Experience</h3>
+                    <button
+                      type="button"
+                      className="add-item-btn"
+                      onClick={() =>
+                        updateResume((r) => ({
+                          ...r,
+                          experience: [
+                            {
+                              role: "Software Engineer",
+                              company: "New Company",
+                              location: "Remote",
+                              startDate: "2023-01",
+                              endDate: "Present",
+                              current: true,
+                              bullets: ["Engineered responsive features and improved team throughput by 20%."],
+                            },
+                            ...(r.experience || []),
+                          ],
+                        }))
+                      }
+                    >
+                      + Add Role
+                    </button>
+                  </div>
 
-          <section className="builder-panel">
-            <div className="builder-panel-heading">
-              <span className="builder-step">03</span>
-              <div><h2>Target role</h2><p>Paste the job description to find relevant keywords.</p></div>
-            </div>
-            <label className="builder-text-label" htmlFor="job-description">Job description</label>
-            <textarea
-              id="job-description"
-              className="builder-textarea"
-              value={jobDescription}
-              onChange={(event) => {
-                setJobDescription(event.target.value.slice(0, MAX_RESUME_TEXT_LENGTH));
-                setGeneratedResume(null);
-              }}
-              maxLength={MAX_RESUME_TEXT_LENGTH}
-              rows={9}
-              placeholder="Paste the role, responsibilities, and qualifications…"
-            />
-          </section>
+                  <div className="entries-list">
+                    {(resume.experience || []).map((exp, expIdx) => (
+                      <div key={expIdx} className="entry-card">
+                        <div className="entry-card-header">
+                          <span className="entry-counter">0{expIdx + 1}</span>
+                          <input
+                            type="text"
+                            value={exp.role}
+                            onChange={(e) => {
+                              const updated = [...resume.experience];
+                              updated[expIdx].role = e.target.value;
+                              updateResume({ experience: updated });
+                            }}
+                            className="entry-title-input"
+                            placeholder="Role Title"
+                          />
+                          <button
+                            type="button"
+                            className="delete-entry-btn"
+                            onClick={() => {
+                              const updated = resume.experience.filter((_, i) => i !== expIdx);
+                              updateResume({ experience: updated });
+                            }}
+                            title="Remove role"
+                          >
+                            ×
+                          </button>
+                        </div>
 
-          <section className="builder-panel builder-ai-panel">
-            <div className="builder-panel-heading">
-              <span className="builder-step">04</span>
-              <div><h2>Tailor with AI</h2><p>Optional · uses your own Gemini API key.</p></div>
-            </div>
-            <label className="builder-text-label" htmlFor="gemini-key">Gemini API key</label>
-            <input
-              id="gemini-key"
-              className="builder-key-input"
-              type="password"
-              autoComplete="off"
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-              placeholder="Paste your key for this session"
-            />
-            <p className="builder-key-note">Your key is kept in memory only, never saved or sent to this portfolio. Google receives your resume text or selected image and job description only when you explicitly select an extraction or generation action. Gemini rewrites only source-supported details and skills; it won’t invent qualifications to raise the ATS estimate. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Get a Gemini key</a>.</p>
-            <button className="builder-primary-button" type="button" onClick={() => handleGenerate(true)} disabled={isGenerating || isReading}>
-              {isGenerating ? "Tailoring your resume…" : "Generate tailored draft"}
-              <span aria-hidden="true">↗</span>
-            </button>
-          </section>
+                        <div className="form-grid-3">
+                          <div className="input-group">
+                            <label>Company</label>
+                            <input
+                              type="text"
+                              value={exp.company}
+                              onChange={(e) => {
+                                const updated = [...resume.experience];
+                                updated[expIdx].company = e.target.value;
+                                updateResume({ experience: updated });
+                              }}
+                              placeholder="Company Name"
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>Location</label>
+                            <input
+                              type="text"
+                              value={exp.location || ""}
+                              onChange={(e) => {
+                                const updated = [...resume.experience];
+                                updated[expIdx].location = e.target.value;
+                                updateResume({ experience: updated });
+                              }}
+                              placeholder="e.g. San Francisco or Remote"
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>Dates</label>
+                            <div className="dates-row">
+                              <input
+                                type="text"
+                                value={exp.startDate || ""}
+                                onChange={(e) => {
+                                  const updated = [...resume.experience];
+                                  updated[expIdx].startDate = e.target.value;
+                                  updateResume({ experience: updated });
+                                }}
+                                placeholder="Start Date"
+                              />
+                              <span>–</span>
+                              <input
+                                type="text"
+                                value={exp.current ? "Present" : exp.endDate || ""}
+                                onChange={(e) => {
+                                  const updated = [...resume.experience];
+                                  updated[expIdx].endDate = e.target.value;
+                                  updateResume({ experience: updated });
+                                }}
+                                placeholder="End Date"
+                                disabled={exp.current}
+                              />
+                            </div>
+                          </div>
+                        </div>
 
-          {generatedResume && (
-            <section className="builder-panel builder-editor">
-              <div className="builder-panel-heading">
-                <span className="builder-step">05</span>
-                <div><h2>Review & edit the draft</h2><p>Make corrections before downloading. The preview updates as you edit.</p></div>
-              </div>
-              <label className="builder-text-label" htmlFor="edit-resume-title">Target title</label>
-              <input
-                id="edit-resume-title"
-                className="builder-key-input"
-                value={generatedResume.personal.title}
-                onChange={(event) => updatePersonalField("title", event.target.value)}
-              />
-              <label className="builder-text-label" htmlFor="edit-resume-summary">Professional profile</label>
-              <textarea
-                id="edit-resume-summary"
-                className="builder-textarea"
-                rows={4}
-                value={generatedResume.summary}
-                onChange={(event) => updateResumeField("summary", event.target.value)}
-              />
-              <p className="builder-editor-subtitle">Technical expertise · comma-separated</p>
-              {SKILL_EDITOR_GROUPS.map(([group, label]) => (
-                <label className="builder-editor-field" key={group}>
-                  <span>{label}</span>
-                  <input
-                    value={generatedResume.skills[group].join(", ")}
-                    onChange={(event) => updateSkillGroup(group, event.target.value)}
-                  />
-                </label>
-              ))}
-              {generatedResume.experience.map((job, index) => (
-                <fieldset className="builder-editor-entry" key={`experience-${index}`}>
-                  <legend>Experience {index + 1}</legend>
-                  <div className="builder-editor-grid">
-                    {[
-                      ["company", "Company"],
-                      ["role", "Role"],
-                      ["location", "Location"],
-                      ["startDate", "Start date"],
-                      ["endDate", "End date"],
-                    ].map(([field, label]) => (
-                      <label className="builder-editor-field" key={field}>
-                        <span>{label}</span>
-                        <input
-                          value={job[field]}
-                          onChange={(event) => updateEntryField("experience", index, field, event.target.value)}
-                        />
-                      </label>
+                        {/* Bullet Points */}
+                        <div className="bullets-section">
+                          <div className="bullets-header">
+                            <label>Key Accomplishments / Responsibilities</label>
+                            <button
+                              type="button"
+                              className="add-bullet-btn"
+                              onClick={() => {
+                                const updated = [...resume.experience];
+                                updated[expIdx].bullets = [...(updated[expIdx].bullets || []), ""];
+                                updateResume({ experience: updated });
+                              }}
+                            >
+                              + Add Bullet
+                            </button>
+                          </div>
+
+                          {(exp.bullets || []).map((bullet, bIdx) => (
+                            <div key={bIdx} className="bullet-row">
+                              <span className="bullet-dot">•</span>
+                              <input
+                                type="text"
+                                value={bullet}
+                                onChange={(e) => {
+                                  const updated = [...resume.experience];
+                                  updated[expIdx].bullets[bIdx] = e.target.value;
+                                  updateResume({ experience: updated });
+                                }}
+                                placeholder="Accomplished X, measured by Y, by doing Z..."
+                              />
+                              <button
+                                type="button"
+                                className="polish-chip-btn"
+                                onClick={() => {
+                                  const updated = [...resume.experience];
+                                  updated[expIdx].bullets[bIdx] = polishBullet(bullet);
+                                  updateResume({ experience: updated });
+                                  showNotice("Bullet enhanced with active power verbs!");
+                                }}
+                                title="Enhance bullet with active verbs"
+                              >
+                                ✨ Polish
+                              </button>
+                              <button
+                                type="button"
+                                className="remove-bullet-btn"
+                                onClick={() => {
+                                  const updated = [...resume.experience];
+                                  updated[expIdx].bullets = updated[expIdx].bullets.filter((_, i) => i !== bIdx);
+                                  updateResume({ experience: updated });
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <label className="builder-editor-field">
-                    <span>Responsibilities and achievements · one per line</span>
+                </div>
+              )}
+
+              {/* 4. Skills */}
+              {editorSection === "skills" && (
+                <div className="editor-card">
+                  <h3 className="card-title">Technical Skills & Categories</h3>
+                  <p className="card-subtitle">
+                    Enter technical skills separated by commas or add individual tags.
+                  </p>
+                  <div className="skills-editor-grid">
+                    {Object.entries(resume.skills || {}).map(([category, list]) => (
+                      <div key={category} className="skill-cat-row">
+                        <label className="cat-label">
+                          {category.charAt(0).toUpperCase() + category.slice(1)}
+                        </label>
+                        <input
+                          type="text"
+                          value={(list || []).join(", ")}
+                          onChange={(e) => {
+                            const updatedSkills = { ...resume.skills };
+                            updatedSkills[category] = e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean);
+                            updateResume({ skills: updatedSkills });
+                          }}
+                          placeholder="e.g. React, Next.js, TypeScript"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Education */}
+              {editorSection === "education" && (
+                <div className="editor-card">
+                  <div className="card-header-flex">
+                    <h3 className="card-title">Education</h3>
+                    <button
+                      type="button"
+                      className="add-item-btn"
+                      onClick={() =>
+                        updateResume((r) => ({
+                          ...r,
+                          education: [
+                            ...(r.education || []),
+                            {
+                              school: "University / College",
+                              degree: "Bachelor of Science",
+                              field: "Computer Science",
+                              startDate: "2018",
+                              endDate: "2022",
+                              gpa: "",
+                              bullets: [],
+                            },
+                          ],
+                        }))
+                      }
+                    >
+                      + Add Degree
+                    </button>
+                  </div>
+                  <div className="entries-list">
+                    {(resume.education || []).map((edu, eduIdx) => (
+                      <div key={eduIdx} className="entry-card">
+                        <div className="entry-card-header">
+                          <input
+                            type="text"
+                            value={edu.school}
+                            onChange={(e) => {
+                              const updated = [...resume.education];
+                              updated[eduIdx].school = e.target.value;
+                              updateResume({ education: updated });
+                            }}
+                            className="entry-title-input"
+                            placeholder="University / College"
+                          />
+                          <button
+                            type="button"
+                            className="delete-entry-btn"
+                            onClick={() => {
+                              const updated = resume.education.filter((_, i) => i !== eduIdx);
+                              updateResume({ education: updated });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="form-grid-3">
+                          <div className="input-group">
+                            <label>Degree</label>
+                            <input
+                              type="text"
+                              value={edu.degree || ""}
+                              onChange={(e) => {
+                                const updated = [...resume.education];
+                                updated[eduIdx].degree = e.target.value;
+                                updateResume({ education: updated });
+                              }}
+                              placeholder="Bachelor of Science"
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>Field of Study</label>
+                            <input
+                              type="text"
+                              value={edu.field || ""}
+                              onChange={(e) => {
+                                const updated = [...resume.education];
+                                updated[eduIdx].field = e.target.value;
+                                updateResume({ education: updated });
+                              }}
+                              placeholder="Computer Science"
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>Dates & GPA</label>
+                            <input
+                              type="text"
+                              value={[edu.startDate, edu.endDate].filter(Boolean).join(" – ")}
+                              onChange={(e) => {
+                                const updated = [...resume.education];
+                                const parts = e.target.value.split(/[–-]/).map((s) => s.trim());
+                                updated[eduIdx].startDate = parts[0] || "";
+                                updated[eduIdx].endDate = parts[1] || "";
+                                updateResume({ education: updated });
+                              }}
+                              placeholder="2018 – 2022"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Projects */}
+              {editorSection === "projects" && (
+                <div className="editor-card">
+                  <div className="card-header-flex">
+                    <h3 className="card-title">Projects & Builds</h3>
+                    <button
+                      type="button"
+                      className="add-item-btn"
+                      onClick={() =>
+                        updateResume((r) => ({
+                          ...r,
+                          projects: [
+                            ...(r.projects || []),
+                            {
+                              name: "New Project",
+                              role: "Lead Developer",
+                              date: "2024",
+                              link: "https://github.com/...",
+                              description: "A web application that simplifies complex workflows.",
+                              techStack: "React, Next.js, Node.js",
+                            },
+                          ],
+                        }))
+                      }
+                    >
+                      + Add Project
+                    </button>
+                  </div>
+                  <div className="entries-list">
+                    {(resume.projects || []).map((proj, pIdx) => (
+                      <div key={pIdx} className="entry-card">
+                        <div className="entry-card-header">
+                          <input
+                            type="text"
+                            value={proj.name}
+                            onChange={(e) => {
+                              const updated = [...resume.projects];
+                              updated[pIdx].name = e.target.value;
+                              updateResume({ projects: updated });
+                            }}
+                            className="entry-title-input"
+                            placeholder="Project Name"
+                          />
+                          <button
+                            type="button"
+                            className="delete-entry-btn"
+                            onClick={() => {
+                              const updated = resume.projects.filter((_, i) => i !== pIdx);
+                              updateResume({ projects: updated });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <div className="form-grid-2">
+                          <div className="input-group">
+                            <label>Role</label>
+                            <input
+                              type="text"
+                              value={proj.role || ""}
+                              onChange={(e) => {
+                                const updated = [...resume.projects];
+                                updated[pIdx].role = e.target.value;
+                                updateResume({ projects: updated });
+                              }}
+                              placeholder="Role / Responsibility"
+                            />
+                          </div>
+                          <div className="input-group">
+                            <label>Live or GitHub Link</label>
+                            <input
+                              type="text"
+                              value={proj.link || ""}
+                              onChange={(e) => {
+                                const updated = [...resume.projects];
+                                updated[pIdx].link = e.target.value;
+                                updateResume({ projects: updated });
+                              }}
+                              placeholder="https://..."
+                            />
+                          </div>
+                        </div>
+                        <div className="input-group full-width">
+                          <label>Description</label>
+                          <textarea
+                            rows={2}
+                            value={proj.description || ""}
+                            onChange={(e) => {
+                              const updated = [...resume.projects];
+                              updated[pIdx].description = e.target.value;
+                              updateResume({ projects: updated });
+                            }}
+                            placeholder="Explain what the project does and the business / technical impact..."
+                          />
+                        </div>
+                        <div className="input-group full-width">
+                          <label>Technologies Used</label>
+                          <input
+                            type="text"
+                            value={proj.techStack || ""}
+                            onChange={(e) => {
+                              const updated = [...resume.projects];
+                              updated[pIdx].techStack = e.target.value;
+                              updateResume({ projects: updated });
+                            }}
+                            placeholder="React, Next.js, Three.js, GSAP"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 7. Extras: Certifications & Languages */}
+              {editorSection === "extras" && (
+                <div className="editor-card">
+                  <h3 className="card-title">Certifications & Languages</h3>
+                  <div className="input-group full-width">
+                    <label>Certifications (one per line)</label>
                     <textarea
                       rows={4}
-                      value={job.bullets.join("\n")}
-                      onChange={(event) => updateEntryList("experience", index, "bullets", event.target.value)}
+                      value={(resume.certifications || [])
+                        .map((c) => (typeof c === "string" ? c : `${c.name} (${c.issuer}, ${c.date})`))
+                        .join("\n")}
+                      onChange={(e) => {
+                        const list = e.target.value.split("\n").filter((s) => s.trim());
+                        updateResume({ certifications: list });
+                      }}
+                      placeholder="Meta Certified Frontend Developer (Meta, 2022)"
                     />
-                  </label>
-                </fieldset>
-              ))}
-              {generatedResume.projects.map((project, index) => (
-                <fieldset className="builder-editor-entry" key={`project-${index}`}>
-                  <legend>Project {index + 1}</legend>
-                  {[
-                    ["name", "Project name"],
-                    ["role", "Role"],
-                    ["description", "Description"],
-                  ].map(([field, label]) => (
-                    <label className="builder-editor-field" key={field}>
-                      <span>{label}</span>
-                      <input
-                        value={project[field]}
-                        onChange={(event) => updateEntryField("projects", index, field, event.target.value)}
-                      />
-                    </label>
-                  ))}
-                  {[
-                    ["technologies", "Technologies · comma-separated"],
-                    ["bullets", "Responsibilities · one per line"],
-                  ].map(([field, label]) => (
-                    <label className="builder-editor-field" key={field}>
-                      <span>{label}</span>
-                      <textarea
-                        rows={3}
-                        value={project[field].join(field === "technologies" ? ", " : "\n")}
-                        onChange={(event) => updateEntryList(
-                          "projects",
-                          index,
-                          field,
-                          field === "technologies" ? event.target.value.replace(/,\s*/g, "\n") : event.target.value,
-                        )}
-                      />
-                    </label>
-                  ))}
-                </fieldset>
-              ))}
-              {generatedResume.education.map((education, index) => (
-                <fieldset className="builder-editor-entry" key={`education-${index}`}>
-                  <legend>Education {index + 1}</legend>
-                  <div className="builder-editor-grid">
-                    {[
-                      ["degree", "Degree"],
-                      ["institution", "Institution"],
-                      ["location", "Location"],
-                      ["startDate", "Start date"],
-                      ["endDate", "End date"],
-                    ].map(([field, label]) => (
-                      <label className="builder-editor-field" key={field}>
-                        <span>{label}</span>
-                        <input
-                          value={education[field]}
-                          onChange={(event) => updateEntryField("education", index, field, event.target.value)}
-                        />
-                      </label>
-                    ))}
                   </div>
-                </fieldset>
-              ))}
-              {[
-                ["achievements", "Achievements · one per line"],
-                ["certifications", "Certifications · one per line"],
-                ["languages", "Languages · one per line"],
-              ].map(([field, label]) => (
-                <label className="builder-editor-field" key={field}>
-                  <span>{label}</span>
-                  <textarea
-                    rows={3}
-                    value={generatedResume[field].join("\n")}
-                    onChange={(event) => updateResumeList(field, event.target.value)}
-                  />
-                </label>
-              ))}
-            </section>
+                  <div className="input-group full-width">
+                    <label>Languages (one per line)</label>
+                    <textarea
+                      rows={3}
+                      value={(resume.languages || [])
+                        .map((l) => (typeof l === "string" ? l : `${l.name} (${l.level})`))
+                        .join("\n")}
+                      onChange={(e) => {
+                        const list = e.target.value.split("\n").filter((s) => s.trim());
+                        updateResume({ languages: list });
+                      }}
+                      placeholder="English (Fluent)\nTamil (Native)"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
-          <section className="builder-save-panel">
-            <label className="builder-save-toggle">
-              <input type="checkbox" checked={saveDraft} onChange={(event) => setSaveDraft(event.target.checked)} />
-              <span>Save draft in this browser</span>
-            </label>
-            <p>Includes extracted resume text, job description, and details. Never stored on our servers.</p>
-            {saveDraft && <button type="button" className="builder-clear-button" onClick={clearDraft}>Clear saved draft</button>}
-          </section>
-        </div>
-
-        <aside className="builder-results">
-          <section className="builder-score-card">
-            <div className="builder-result-heading">
-              <div><p className="builder-kicker">ROLE ALIGNMENT</p><h2>ATS estimate</h2></div>
-              <span className="builder-score">{ats.score}<small>/ 100</small></span>
-            </div>
-            <p className="builder-score-caption">
-              {ats.score >= 95 ? "Excellent match" : ats.score >= 85 ? "Strong match" : ats.score >= 70 ? "Good match" : ats.score >= 50 ? "Fair match" : "Needs improvement"}
-              {" · "}An estimate based on keywords, skills, experience, and structure—not a real ATS result.
-            </p>
-            <div className="builder-score-track" aria-label={`Estimated ATS match ${ats.score} out of 100`}><span style={{ width: `${ats.score}%` }} /></div>
-            <div className="builder-ats-breakdown">
-              {[
-                ["Keyword match", ats.breakdown.keywordScore],
-                ["Skills match", ats.breakdown.skillScore],
-                ["Experience relevance", ats.breakdown.experienceScore],
-                ["Resume structure", ats.breakdown.structureScore],
-              ].map(([label, score]) => (
-                <div key={label}><span>{label}</span><strong>{score}%</strong></div>
-              ))}
-            </div>
-            <div className="builder-ats-columns">
-              <div>
-                <h3>Matched</h3>
-                <p>{ats.matchedKeywords.length ? ats.matchedKeywords.join(", ") : "No matching terms yet."}</p>
+          {/* TAB 2: TEMPLATES & DESIGN CONTROLS */}
+          {activeTab === "design" && (
+            <div className="design-tab-content">
+              {/* Template Picker */}
+              <div className="design-section">
+                <h3 className="design-section-title">Layout Template</h3>
+                <div className="template-grid">
+                  {TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      className={`template-card-btn ${
+                        (resume.template || "modern") === tmpl.id ? "is-selected" : ""
+                      }`}
+                      onClick={() => updateResume({ template: tmpl.id })}
+                    >
+                      <div className="template-card-header">
+                        <strong>{tmpl.name}</strong>
+                        <span className="template-badge">{tmpl.badge}</span>
+                      </div>
+                      <p className="template-desc">{tmpl.description}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <h3>Missing / consider</h3>
-                <p>{ats.missingKeywords.length ? ats.missingKeywords.join(", ") : "No missing terms detected."}</p>
+
+              {/* Theme Color Picker */}
+              <div className="design-section">
+                <h3 className="design-section-title">Accent Color</h3>
+                <div className="color-swatches-row">
+                  {THEME_COLORS.map((col) => (
+                    <button
+                      key={col.id}
+                      type="button"
+                      className={`swatch-btn ${resume.themeColor === col.hex ? "is-selected" : ""}`}
+                      style={{ backgroundColor: col.hex }}
+                      onClick={() => updateResume({ themeColor: col.hex })}
+                      title={col.name}
+                      aria-label={col.name}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={resume.themeColor || "#0db760"}
+                    onChange={(e) => updateResume({ themeColor: e.target.value })}
+                    className="custom-color-input"
+                    title="Choose custom color"
+                  />
+                </div>
+              </div>
+
+              {/* Typography */}
+              <div className="design-section">
+                <h3 className="design-section-title">Typography & Font</h3>
+                <div className="font-picker-grid">
+                  {FONT_FAMILIES.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={`font-select-btn ${(resume.fontFamily || "sans") === f.id ? "is-selected" : ""}`}
+                      onClick={() => updateResume({ fontFamily: f.id })}
+                      style={{ fontFamily: f.font }}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dimensions Sliders */}
+              <div className="design-section">
+                <h3 className="design-section-title">Spacing & Sizing</h3>
+                <div className="sliders-grid">
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Base Font Size</label>
+                      <span>{resume.baseFontSize || 14}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={12}
+                      max={18}
+                      step={0.5}
+                      value={resume.baseFontSize || 14}
+                      onChange={(e) => updateResume({ baseFontSize: parseFloat(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Line Height</label>
+                      <span>{resume.lineHeight || 1.5}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1.2}
+                      max={1.9}
+                      step={0.05}
+                      value={resume.lineHeight || 1.5}
+                      onChange={(e) => updateResume({ lineHeight: parseFloat(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Section Spacing</label>
+                      <span>{resume.sectionSpacing || 16}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={8}
+                      max={28}
+                      step={2}
+                      value={resume.sectionSpacing || 16}
+                      onChange={(e) => updateResume({ sectionSpacing: parseInt(e.target.value, 10) })}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <div className="slider-label-row">
+                      <label>Page Margins</label>
+                      <span>{resume.pagePadding || 28}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={16}
+                      max={44}
+                      step={2}
+                      value={resume.pagePadding || 28}
+                      onChange={(e) => updateResume({ pagePadding: parseInt(e.target.value, 10) })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section Visibility */}
+              <div className="design-section">
+                <h3 className="design-section-title">Section Visibility</h3>
+                <div className="visibility-toggles-list">
+                  {Object.entries(resume.visibleSections || {}).map(([secKey, isVis]) => (
+                    <label key={secKey} className="visibility-item">
+                      <input
+                        type="checkbox"
+                        checked={isVis}
+                        onChange={(e) => {
+                          const updated = { ...resume.visibleSections, [secKey]: e.target.checked };
+                          updateResume({ visibleSections: updated });
+                        }}
+                      />
+                      <span>{secKey.charAt(0).toUpperCase() + secKey.slice(1)}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-            {ats.recommendations.length > 0 && (
-              <ul className="builder-recommendations">
-                {ats.recommendations.map((recommendation) => <li key={recommendation}>{recommendation}</li>)}
-              </ul>
-            )}
-            <p className="builder-integrity-note">Only include a missing keyword if it accurately reflects your real experience.</p>
-          </section>
+          )}
 
-          <section className="builder-preview-section">
-            <div className="builder-preview-toolbar">
-              <div><p className="builder-kicker">LIVE DOCUMENT</p><h2>Resume preview</h2></div>
-              <button className="builder-print-button" type="button" onClick={handleDownloadPdf} disabled={!hasResumeData || isDownloading}>
-                {isDownloading ? "Creating PDF…" : "Download PDF"} <span aria-hidden="true">↓</span>
+          {/* TAB 3: BI-DIRECTIONAL MARKDOWN */}
+          {activeTab === "markdown" && (
+            <div className="markdown-tab-content">
+              <div className="markdown-header-bar">
+                <div>
+                  <h3 className="card-title">Bi-Directional Markdown Sync</h3>
+                  <p className="card-subtitle">
+                    Edit below directly. Any changes update the resume and live preview in real time!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(markdownText);
+                    showNotice("Markdown copied to clipboard!");
+                  }}
+                >
+                  Copy Markdown
+                </button>
+              </div>
+              <textarea
+                className="markdown-raw-editor"
+                value={markdownText}
+                onChange={(e) => handleMarkdownChange(e.target.value)}
+                rows={28}
+                spellCheck={false}
+              />
+            </div>
+          )}
+
+          {/* TAB 4: ATS MATCHER & OPTIMIZER */}
+          {activeTab === "ats" && (
+            <div className="ats-tab-content">
+              <div className="ats-card">
+                <h3 className="card-title">ATS Keyword Scanner</h3>
+                <p className="card-subtitle">
+                  Paste the target job description to match keywords and get instant ATS recommendations.
+                </p>
+                <textarea
+                  className="styled-textarea"
+                  rows={6}
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste job description (e.g. Senior Frontend Engineer with React, TypeScript, Next.js, and CI/CD pipelines)..."
+                />
+              </div>
+
+              {/* ATS Score Overview */}
+              <div className="ats-score-card">
+                <div className="score-dial">
+                  <span className="score-num">{ats.score}%</span>
+                  <span className="score-caption">ATS Match</span>
+                </div>
+                <div className="score-breakdown-bars">
+                  <div className="breakdown-bar-item">
+                    <div className="bar-label-row">
+                      <span>Keywords Match</span>
+                      <span>{ats.breakdown.keywordScore}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${ats.breakdown.keywordScore}%` }} />
+                    </div>
+                  </div>
+                  <div className="breakdown-bar-item">
+                    <div className="bar-label-row">
+                      <span>Skills Match</span>
+                      <span>{ats.breakdown.skillScore}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${ats.breakdown.skillScore}%` }} />
+                    </div>
+                  </div>
+                  <div className="breakdown-bar-item">
+                    <div className="bar-label-row">
+                      <span>Experience Depth</span>
+                      <span>{ats.breakdown.experienceScore}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${ats.breakdown.experienceScore}%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keywords Breakdown */}
+              <div className="ats-keywords-card">
+                <h4 className="keywords-heading">Matched Keywords ({ats.matchedKeywords.length})</h4>
+                <div className="keywords-chips">
+                  {ats.matchedKeywords.length > 0 ? (
+                    ats.matchedKeywords.map((kw) => (
+                      <span key={kw} className="kw-chip is-matched">
+                        ✓ {kw}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="empty-kw-note">Paste job description above to scan.</span>
+                  )}
+                </div>
+
+                {ats.missingKeywords.length > 0 && (
+                  <>
+                    <h4 className="keywords-heading missing-title">Missing Job Terms ({ats.missingKeywords.length})</h4>
+                    <div className="keywords-chips">
+                      {ats.missingKeywords.map((kw) => (
+                        <span key={kw} className="kw-chip is-missing">
+                          + {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Recommendations */}
+              {ats.recommendations?.length > 0 && (
+                <div className="ats-recs-card">
+                  <h4 className="recs-heading">Optimization Suggestions</h4>
+                  <ul className="recs-list">
+                    {ats.recommendations.map((rec, i) => (
+                      <li key={i}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* ── RIGHT PANE: LIVE A4 PREVIEW CANVAS ── */}
+        <section className={`builder-preview-pane ${mobileView === "preview" ? "is-mobile-visible" : ""}`}>
+          <div className="preview-canvas-bar">
+            <div className="canvas-status">
+              <span className="live-dot" aria-hidden="true" />
+              <span>A4 Live Preview</span>
+              <span className="template-indicator">({TEMPLATES.find((t) => t.id === resume.template)?.name || "Modern"})</span>
+            </div>
+
+            <div className="zoom-controls">
+              <button
+                type="button"
+                className="zoom-btn"
+                onClick={() => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)))}
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <span className="zoom-label">{Math.round(scale * 100)}%</span>
+              <button
+                type="button"
+                className="zoom-btn"
+                onClick={() => setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))}
+                title="Zoom In"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="zoom-reset-btn"
+                onClick={() => setScale(1)}
+                title="Reset Zoom"
+              >
+                100%
               </button>
             </div>
-            <ResumeDocument resume={renderedResume} />
-            <p className="builder-print-hint">Preview updates as you type. Download creates an A4 PDF directly in your browser.</p>
-          </section>
-        </aside>
-      </div>
+          </div>
 
-      <footer className="builder-footer">
-        <span>MADE FOR THE NEXT CHAPTER</span>
-        <a href="/">Return to Sanjay’s portfolio ↗</a>
-      </footer>
-    </main>
+          <div className="preview-scroll-viewport">
+            <ResumeDocument resume={resume} scale={scale} />
+          </div>
+        </section>
+      </main>
+
+      {/* Toast Notification */}
+      {notification && (
+        <div className="toast-notification" role="status" aria-live="polite">
+          {notification}
+        </div>
+      )}
+      </div>
+    </div>
   );
 }
-
-export default ResumeBuilder;
