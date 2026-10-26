@@ -201,7 +201,7 @@ export default function ResumeDocument({
                     <div className="entry-header">
                       <div className="entry-title-wrap">
                         <strong className="entry-role">{exp.role}</strong>
-                        <span className="entry-at">at</span>
+                        <span className="entry-at"> at </span>
                         <span className="entry-company">{exp.company}</span>
                       </div>
                       <div className="entry-meta">
@@ -241,7 +241,7 @@ export default function ResumeDocument({
                       <strong className="entry-school">{edu.school}</strong>
                       {edu.degree && (
                         <span className="entry-degree">
-                          — {edu.degree} {edu.field ? `in ${edu.field}` : ""}
+                          {" "}— {edu.degree} {edu.field ? `in ${edu.field}` : ""}
                         </span>
                       )}
                     </div>

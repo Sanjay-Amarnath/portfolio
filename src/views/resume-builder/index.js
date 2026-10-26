@@ -287,49 +287,50 @@ export default function ResumeBuilder() {
           </nav>
 
           <div className="topbar-actions">
-            {/* Theme Toggle Button */}
-            <button
-              type="button"
-              className="theme-toggle-btn"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {theme === "dark" ? (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
-                  <path d="m16.5 3 .5 1.5 1.5.5-1.5.5-.5 1.5L16 5.5l-1.5-.5 1.5-.5.5-1.5Z" />
-                </svg>
-              )}
-            </button>
+            {/* Utilities: Theme & History */}
+            <div className="topbar-utility-cluster">
+              <button
+                type="button"
+                className="theme-toggle-btn"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {theme === "dark" ? (
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20.2 15.4A8.4 8.4 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
+                    <path d="m16.5 3 .5 1.5 1.5.5-1.5.5-.5 1.5L16 5.5l-1.5-.5 1.5-.5.5-1.5Z" />
+                  </svg>
+                )}
+              </button>
 
-            {/* Undo / Redo */}
-            <div className="undo-redo-group">
-              <button
-                type="button"
-                className="icon-action-btn"
-                onClick={handleUndo}
-                disabled={!history.length}
-                title="Undo"
-                aria-label="Undo last change"
-              >
-                ↺
-              </button>
-              <button
-                type="button"
-                className="icon-action-btn"
-                onClick={handleRedo}
-                disabled={!future.length}
-                title="Redo"
-                aria-label="Redo change"
-              >
-                ↻
-              </button>
+              <div className="undo-redo-group">
+                <button
+                  type="button"
+                  className="icon-action-btn"
+                  onClick={handleUndo}
+                  disabled={!history.length}
+                  title="Undo"
+                  aria-label="Undo last change"
+                >
+                  ↺
+                </button>
+                <button
+                  type="button"
+                  className="icon-action-btn"
+                  onClick={handleRedo}
+                  disabled={!future.length}
+                  title="Redo"
+                  aria-label="Redo change"
+                >
+                  ↻
+                </button>
+              </div>
             </div>
 
             {/* Preset Selector */}
@@ -344,50 +345,55 @@ export default function ResumeBuilder() {
             </select>
 
             {/* Export / Import Menu */}
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => fileInputRef.current?.click()}
-              title="Import JSON, PDF, DOCX or MD"
-            >
-              Import
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".json,.pdf,.docx,.txt,.md"
-              style={{ display: "none" }}
-            />
+            <div className="topbar-io-cluster">
+              <button
+                type="button"
+                className="secondary-btn btn-import"
+                onClick={() => fileInputRef.current?.click()}
+                title="Import JSON, PDF, DOCX or MD"
+              >
+                Import
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".json,.pdf,.docx,.txt,.md"
+                style={{ display: "none" }}
+              />
 
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => exportResumeJson(resume)}
-              title="Export JSON resume data"
-            >
-              Export JSON
-            </button>
+              <button
+                type="button"
+                className="secondary-btn btn-export"
+                onClick={() => exportResumeJson(resume)}
+                title="Export JSON resume data"
+              >
+                Export JSON
+              </button>
+            </div>
 
-            <button
-              type="button"
-              className="secondary-btn download-pdf-btn"
-              onClick={handleDownloadPdf}
-              title="Download standalone PDF document"
-              disabled={isExporting}
-            >
-              <span>{isExporting ? "Generating..." : "Download PDF"}</span>
-            </button>
+            {/* CTAs */}
+            <div className="topbar-cta-cluster">
+              <button
+                type="button"
+                className="secondary-btn download-pdf-btn"
+                onClick={handleDownloadPdf}
+                title="Download standalone PDF document"
+                disabled={isExporting}
+              >
+                <span>{isExporting ? "Generating..." : "Download PDF"}</span>
+              </button>
 
-            <button
-              type="button"
-              className="primary-action-btn print-save-btn"
-              onClick={handlePrint}
-              title="Print or Save as PDF via browser"
-            >
-              <span>Print / Save PDF</span>
-              <span aria-hidden="true">🖨️</span>
-            </button>
+              <button
+                type="button"
+                className="primary-action-btn print-save-btn"
+                onClick={handlePrint}
+                title="Print or Save as PDF via browser"
+              >
+                <span>Print / Save PDF</span>
+                <span aria-hidden="true">🖨️</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1636,85 +1642,121 @@ export default function ResumeBuilder() {
         {/* ── RIGHT PANE: LIVE A4 PREVIEW CANVAS ── */}
         <section className={`builder-preview-pane ${mobileView === "preview" ? "is-mobile-visible" : ""}`}>
           <div className="preview-canvas-bar">
-            <div className="canvas-status">
-              <span className="live-dot" aria-hidden="true" />
-              <span className="canvas-title">A4 Live Preview</span>
-              <span className="template-indicator">
-                {TEMPLATES.find((t) => t.id === resume.template)?.name || "Modern"}
-              </span>
-              <span className={`page-count-badge ${pageCount > 1 ? "is-multi-page" : "is-single-page"}`}>
-                📄 {pageCount} {pageCount === 1 ? "Page" : "Pages"}
-                <small>{pageCount === 1 ? "(Fits A4)" : "(Spills to Page 2)"}</small>
-              </span>
-            </div>
-
-            <div className="canvas-actions-right">
-              {/* Header & Footer Spacing Quick Controls */}
-              <div className="canvas-spacing-capsule">
-                <span className="capsule-label">Margins:</span>
-                <button
-                  type="button"
-                  className="spacing-btn"
-                  onClick={() => {
-                    updateResume((r) => ({
-                      ...r,
-                      headerSpacing: Math.min(80, (r.headerSpacing || 36) + 4),
-                    }));
-                    showNotice("Added Header (Top) Space!");
-                  }}
-                  title="Increase Header (Top) Space"
-                >
-                  + Header
-                </button>
-                <button
-                  type="button"
-                  className="spacing-btn"
-                  onClick={() => {
-                    updateResume((r) => ({
-                      ...r,
-                      headerSpacing: Math.max(12, (r.headerSpacing || 36) - 4),
-                    }));
-                    showNotice("Reduced Header (Top) Space!");
-                  }}
-                  title="Decrease Header (Top) Space"
-                >
-                  − Header
-                </button>
-                <span className="spacing-divider">|</span>
-                <button
-                  type="button"
-                  className="spacing-btn"
-                  onClick={() => {
-                    updateResume((r) => ({
-                      ...r,
-                      footerSpacing: Math.min(80, (r.footerSpacing || 36) + 4),
-                      bottomMargin: Math.min(80, (r.footerSpacing || 36) + 4),
-                    }));
-                    showNotice("Added Footer (Bottom) Space!");
-                  }}
-                  title="Increase Footer (Bottom) Space"
-                >
-                  + Footer
-                </button>
-                <button
-                  type="button"
-                  className="spacing-btn"
-                  onClick={() => {
-                    updateResume((r) => ({
-                      ...r,
-                      footerSpacing: Math.max(12, (r.footerSpacing || 36) - 4),
-                      bottomMargin: Math.max(12, (r.footerSpacing || 36) - 4),
-                    }));
-                    showNotice("Reduced Footer (Bottom) Space!");
-                  }}
-                  title="Decrease Footer (Bottom) Space"
-                >
-                  − Footer
-                </button>
+            {/* Primary Row: Status, Template, Page Count, and Zoom */}
+            <div className="canvas-status-row">
+              <div className="canvas-status">
+                <span className="live-dot" aria-hidden="true" />
+                <span className="canvas-title">A4 Live Preview</span>
+                <span className="template-indicator">
+                  {TEMPLATES.find((t) => t.id === resume.template)?.name || "Modern"}
+                </span>
+                <span className={`page-count-badge ${pageCount > 1 ? "is-multi-page" : "is-single-page"}`}>
+                  📄 {pageCount} {pageCount === 1 ? "Page" : "Pages"}
+                  <small>{pageCount === 1 ? "(Fits A4)" : "(Spills to Page 2)"}</small>
+                </span>
               </div>
 
-              {pageCount > 1 && (
+              <div className="zoom-controls">
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={() => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)))}
+                  title="Zoom Out"
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+                <span className="zoom-label">{Math.round(scale * 100)}%</span>
+                <button
+                  type="button"
+                  className="zoom-btn"
+                  onClick={() => setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))}
+                  title="Zoom In"
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="zoom-reset-btn"
+                  onClick={() => setScale(1)}
+                  title="Reset Zoom to 100%"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Secondary Row: Quick Margins & Multi-page Jump / Fit */}
+            <div className="canvas-tools-row">
+              <div className="canvas-spacing-capsule">
+                <span className="capsule-label">Margins:</span>
+                <div className="spacing-capsule-btns">
+                  <button
+                    type="button"
+                    className="spacing-btn"
+                    onClick={() => {
+                      updateResume((r) => ({
+                        ...r,
+                        headerSpacing: Math.min(80, (r.headerSpacing || 36) + 4),
+                      }));
+                      showNotice("Added Header (Top) Space!");
+                    }}
+                    title="Increase Header (Top) Space"
+                  >
+                    + Header
+                  </button>
+                  <button
+                    type="button"
+                    className="spacing-btn"
+                    onClick={() => {
+                      updateResume((r) => ({
+                        ...r,
+                        headerSpacing: Math.max(12, (r.headerSpacing || 36) - 4),
+                      }));
+                      showNotice("Reduced Header (Top) Space!");
+                    }}
+                    title="Decrease Header (Top) Space"
+                  >
+                    − Header
+                  </button>
+                  <span className="spacing-divider">|</span>
+                  <button
+                    type="button"
+                    className="spacing-btn"
+                    onClick={() => {
+                      updateResume((r) => ({
+                        ...r,
+                        footerSpacing: Math.min(80, (r.footerSpacing || 36) + 4),
+                        bottomMargin: Math.min(80, (r.footerSpacing || 36) + 4),
+                      }));
+                      showNotice("Added Footer (Bottom) Space!");
+                    }}
+                    title="Increase Footer (Bottom) Space"
+                  >
+                    + Footer
+                  </button>
+                  <button
+                    type="button"
+                    className="spacing-btn"
+                    onClick={() => {
+                      updateResume((r) => ({
+                        ...r,
+                        footerSpacing: Math.max(12, (r.footerSpacing || 36) - 4),
+                        bottomMargin: Math.max(12, (r.footerSpacing || 36) - 4),
+                      }));
+                      showNotice("Reduced Footer (Bottom) Space!");
+                    }}
+                    title="Decrease Footer (Bottom) Space"
+                  >
+                    − Footer
+                  </button>
+                </div>
+              </div>
+
+              {pageCount > 1 ? (
                 <div className="page-jump-group">
+                  <span className="page-jump-label">Jump:</span>
                   {Array.from({ length: pageCount }).map((_, i) => (
                     <button
                       key={i + 1}
@@ -1750,37 +1792,11 @@ export default function ResumeBuilder() {
                     ⚡ Fit 1-Page
                   </button>
                 </div>
+              ) : (
+                <div className="canvas-single-hint">
+                  <span className="single-hint-pill">✓ Single A4 Sheet</span>
+                </div>
               )}
-
-              <div className="zoom-controls">
-                <button
-                  type="button"
-                  className="zoom-btn"
-                  onClick={() => setScale((s) => Math.max(0.5, +(s - 0.1).toFixed(2)))}
-                  title="Zoom Out"
-                  aria-label="Zoom out"
-                >
-                  −
-                </button>
-                <span className="zoom-label">{Math.round(scale * 100)}%</span>
-                <button
-                  type="button"
-                  className="zoom-btn"
-                  onClick={() => setScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))}
-                  title="Zoom In"
-                  aria-label="Zoom in"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  className="zoom-reset-btn"
-                  onClick={() => setScale(1)}
-                  title="Reset Zoom to 100%"
-                >
-                  Reset
-                </button>
-              </div>
             </div>
           </div>
 
